@@ -1,0 +1,53 @@
+[project]
+name = "organizer-server"
+version = "0.1.0"
+description = "Self-hosted organizer API: calendar, reminders, job tracker and mail"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.116,<1",
+    "uvicorn[standard]>=0.35",
+    "sqlalchemy>=2.0.40,<2.1",
+    "alembic>=1.16",
+    "pydantic>=2.11",
+    "pydantic-settings>=2.10",
+    "httpx[http2]>=0.28",
+    "apscheduler>=3.11,<4",
+    "holidays>=0.80",
+    "tzdata>=2025.2",
+    "cryptography>=45",
+    "argon2-cffi>=23.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "ruff>=0.12",
+]
+
+[tool.uv]
+package = false
+# Only resolve releases that have been public for a few weeks.
+exclude-newer = "2026-10-20T00:00:00Z"
+
+[tool.pytest.ini_options]
+# Core tests live in tests/, module tests next to their module (app/modules/<name>/tests/).
+testpaths = ["tests", "app"]
+pythonpath = ["."]
+addopts = "--import-mode=importlib -q"
+filterwarnings = [
+    "error::DeprecationWarning:app.*",
+    "ignore:Using `httpx` with `starlette.testclient`",
+    "ignore::DeprecationWarning:starlette.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "B008",  # FastAPI Depends()/Query() in argument defaults is intended
+    "UP046", "UP047",  # keep classic TypeVar generics; they read more plainly
+]

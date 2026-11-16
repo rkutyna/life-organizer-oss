@@ -1,0 +1,30 @@
+# Life Organizer for Mac. From the repo root:
+#
+#   cp .env.example .env        # then set ORGANIZER_SECRET_KEY (openssl rand -base64 32)
+#   docker compose up -d --build
+#
+# Then open http://localhost:8600 and finish setup. The port is published on this machine's
+# loopback only. To reach it from your phone or other computers, put Tailscale, a Cloudflare
+# Tunnel or another reverse proxy in front (docs/SETUP.md). Do not publish it on 0.0.0.0 unless
+# it is behind HTTPS.
+
+services:
+  organizer:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    image: organizer:latest
+    container_name: organizer
+    ports:
+      - "127.0.0.1:${ORGANIZER_PORT:-8600}:8600"
+    environment:
+      ORGANIZER_SECRET_KEY: ${ORGANIZER_SECRET_KEY:?set ORGANIZER_SECRET_KEY in .env (openssl rand -base64 32)}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-UTC}
+      COOKIE_SECURE: ${COOKIE_SECURE:-auto}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
+    volumes:
+      - organizer-data:/app/server/data
+    restart: unless-stopped
+
+volumes:
+  organizer-data:

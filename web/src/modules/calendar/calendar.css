@@ -1,0 +1,127 @@
+/* FullCalendar, themed with the design tokens (src/styles/tokens.css). */
+
+.lo-calendar .fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-list-event-hover-bg-color: var(--accent);
+  --fc-today-bg-color: color-mix(in oklab, var(--primary) 5%, transparent);
+  --fc-now-indicator-color: var(--status-overdue);
+  --fc-highlight-color: color-mix(in oklab, var(--primary) 12%, transparent);
+  --fc-small-font-size: 11px;
+  --fc-event-border-color: transparent;
+  font-size: 12px;
+  height: 100%;
+}
+
+.lo-calendar .fc .fc-scrollgrid {
+  border-left: 0;
+  border-top: 0;
+}
+
+.lo-calendar .fc .fc-col-header-cell {
+  background: var(--card);
+}
+
+.lo-calendar .fc .fc-col-header-cell-cushion {
+  padding: 6px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.lo-calendar .fc .fc-daygrid-day-number {
+  margin: 3px 4px 0 0;
+  padding: 0 5px;
+  min-width: 20px;
+  line-height: 20px;
+  border-radius: 9999px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.lo-calendar .fc .fc-day-today .fc-daygrid-day-number {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+
+.lo-calendar .fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 0.45;
+}
+
+.lo-calendar .fc .fc-timegrid-slot {
+  height: 2.1em;
+}
+
+.lo-calendar .fc .fc-timegrid-slot-minor {
+  border-top-style: none;
+}
+
+.lo-calendar .fc .fc-timegrid-slot-label-cushion,
+.lo-calendar .fc .fc-timegrid-axis-cushion {
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.lo-calendar .fc a {
+  color: inherit;
+}
+
+.lo-calendar .fc .fc-daygrid-more-link {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.lo-calendar .fc .fc-popover {
+  background: var(--popover);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+
+.lo-calendar .fc .fc-popover-header {
+  background: var(--muted);
+}
+
+/* Events: a tinted block with a source-colored edge. Colors come from inline CSS vars. */
+.lo-calendar .fc .fc-event {
+  border: 0;
+  border-left: 3px solid var(--lo-event-color);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--lo-event-color) 18%, var(--card));
+  color: var(--foreground);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.lo-calendar .fc .fc-event:hover {
+  background: color-mix(in oklab, var(--lo-event-color) 28%, var(--card));
+}
+
+.lo-calendar .fc .fc-event:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.lo-calendar .fc .fc-h-event .fc-event-main,
+.lo-calendar .fc .fc-v-event .fc-event-main {
+  color: var(--foreground);
+}
+
+.lo-calendar .fc .fc-daygrid-event {
+  margin-top: 1px;
+}
+
+.lo-calendar .fc .fc-event.is-done {
+  opacity: 0.55;
+}
+
+.lo-calendar .fc .fc-event.is-done .lo-event-title {
+  text-decoration: line-through;
+}

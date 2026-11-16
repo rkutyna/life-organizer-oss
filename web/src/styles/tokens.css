@@ -1,0 +1,105 @@
+/*
+ * Design tokens: the ONE place colors are defined, for light and dark.
+ *
+ * - Surface tokens follow shadcn/ui names (--background, --card, --primary, ...).
+ * - --source-<key>: one color per calendar source key (the `source` of a CalendarItem).
+ *   Add a line here (both themes) when a module adds a source; src/app/tokens.ts reads them.
+ * - --status-<key>: one color per status (reminder state, freshness state).
+ *
+ * Server-side colors in register_provider() should match the light value.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --background: #f7f7f5;
+  --foreground: #1c1c1e;
+  --card: #ffffff;
+  --card-foreground: #1c1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1e;
+  --primary: #3563d1;
+  --primary-foreground: #ffffff;
+  --secondary: #efefec;
+  --secondary-foreground: #1c1c1e;
+  --muted: #efefec;
+  --muted-foreground: #6b6b70;
+  --accent: #ebebe8;
+  --accent-foreground: #1c1c1e;
+  --destructive: #cf3f3f;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4df;
+  --input: #dcdcd6;
+  --ring: #3563d1;
+  --sidebar: #efefeb;
+  --sidebar-foreground: #3a3a3e;
+  --sidebar-accent: #e3e3de;
+  --sidebar-border: #e2e2dc;
+  --selection: #e6edfb;
+
+  /* calendar sources */
+  --source-holidays: #a0782c;
+  --source-apple: #64748b;
+  --source-interviews: #d0476b;
+  --source-job-events: #1f8fa8;
+  --source-next-actions: #d0682a;
+  --source-reminders: #f19a37;
+  --source-default: #7a7a85;
+
+  /* statuses */
+  --status-open: #6b6b70;
+  --status-done: #9a9aa0;
+  --status-overdue: #cf3f3f;
+  --status-today: #3563d1;
+  --status-ok: #2f9a6a;
+  --status-stale: #c2840f;
+  --status-error: #cf3f3f;
+  --status-never: #9a9aa0;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #111113;
+  --foreground: #ececee;
+  --card: #18181b;
+  --card-foreground: #ececee;
+  --popover: #1c1c20;
+  --popover-foreground: #ececee;
+  --primary: #7398f2;
+  --primary-foreground: #0d1426;
+  --secondary: #232328;
+  --secondary-foreground: #ececee;
+  --muted: #1f1f23;
+  --muted-foreground: #9a9aa3;
+  --accent: #26262b;
+  --accent-foreground: #ececee;
+  --destructive: #e5605f;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2f;
+  --input: #34343a;
+  --ring: #7398f2;
+  --sidebar: #141416;
+  --sidebar-foreground: #c9c9ce;
+  --sidebar-accent: #222227;
+  --sidebar-border: #232327;
+  --selection: #1f2a44;
+
+  --source-holidays: #d4ab58;
+  --source-apple: #94a3b8;
+  --source-interviews: #ef7896;
+  --source-job-events: #4fbcd4;
+  --source-next-actions: #ec9358;
+  --source-reminders: #f5ad5a;
+  --source-default: #9a9aa3;
+
+  --status-open: #9a9aa3;
+  --status-done: #6e6e76;
+  --status-overdue: #ef6b6b;
+  --status-today: #7398f2;
+  --status-ok: #5cc596;
+  --status-stale: #e0a83a;
+  --status-error: #ef6b6b;
+  --status-never: #6e6e76;
+}
