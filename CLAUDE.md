@@ -17,3 +17,23 @@ organizer (calendar, reminders, job tracker, mail) extracted from a private pers
    private network.
 6. **A module is self-contained** under `server/app/modules/<name>/` and `web/src/modules/<name>/`.
 7. **Provider credentials live encrypted in `provider_accounts`**, never in logs or responses.
+8. **Auth lives in `app/auth/principal.py`.** `app.main` mounts every router behind a scope
+   guard (`api`, `ingest`, `mail`); account management is browser-only. A new public route
+   needs a reason and a line in `tests/test_main.py`'s public set.
+
+## Commands
+
+```bash
+cd server && uv sync && uv run pytest          # tests (ruff check . && ruff format --check .)
+uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8600
+uv run alembic revision --autogenerate --rev-id 00NN -m "..."   # after changing models
+cd web && npm install && npm run dev           # proxies /api to :8600
+npm run typecheck && npm run build && npm run gen:api
+docker compose up -d --build                   # needs .env (see .env.example)
+scripts/scrub-check.sh [--staged|--history]    # personal-data check
+```
+
+## Done means
+
+Server tests, web typecheck and build, and `scripts/scrub-check.sh --history` pass; the change
+is committed with a clear message.

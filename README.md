@@ -1,4 +1,4 @@
-# Organizer (working name)
+# Life Organizer for Mac
 
 A self-hosted organizer: your calendars, reminders, job search and mail in one place, with an
 MCP server so Claude can work with all of it.

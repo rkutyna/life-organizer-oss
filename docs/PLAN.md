@@ -1,6 +1,6 @@
 # Plan: a self-hosted organizer
 
-Status: draft, 2026-11-16. Nothing is built yet. This repo is **private** until the checks in §9 pass.
+Status: phase 0 (core) built 2026-11-16; phases 1-5 not started. This repo is **private** until the checks in §9 pass.
 
 ## 1. What this is
 
@@ -132,10 +132,9 @@ The original's job module is about 13k lines of server code and 8.8k of web code
 | **Leads** as a stage of an application, with one record per posting (`matching.py`) | LeetCode, reps, packaging, the skills map |
 | **Contacts:** next action and due date, reply date | The workspace mirror mode and the `files` and `gitlog` modules |
 | **Interviews**, linked to calendar events; **events** such as fairs and networking | The Google Sheet importers and their hardcoded tabs and counts |
-| **Pipeline:** counts by status and `reached` | Draft-context rules read from the workspace's markdown |
+| **Pipeline:** counts by status and `reached` | Message drafts, draft context and outreach rules (§10.6) |
 | **Weekly goals:** optional, user-defined (applications and outreach per week), with no fixed lanes | |
 | **CSV import with a column-mapping step**, dry run first | |
-| **Message drafts** for Claude: kept, but the "rules" become a settings text field instead of a workspace file | |
 
 - **Statuses** are a configurable list with sensible defaults (lead, applied, screen, interview, offer, rejected, withdrawn, ghosted). The pipeline counts only; it shows no rates, as in the original.
 - **Port order:** models and matching first, then status history, the pipeline, contacts and interviews, and the web pages, written new against the smaller model. The original's pages are dense with lane and workspace UI; reusing their components is fine, but copying them whole is not.
@@ -196,13 +195,32 @@ docs/            PLAN.md (this), SETUP.md, PROVIDERS.md, SECURITY.md
 | 4 | **Job tracker:** the generic model, matching, pipeline, CSV import with mapping, calendar items, MCP tools | The friend imports their spreadsheet and works from the tracker for a week |
 | 5 | **Go public:** `SECURITY.md`, a threat-model pass over auth and mail, the license, README screenshots from the seed, the friend's first install from the docs alone | The scrub check passes on all history, and an outside reviewer finds no personal data |
 
-Phases 1 and 2 are independent and can be built in parallel once phase 0 lands. Phase 3's Google half is independent too. The helper half waits on a signing decision (§10).
+Phases 1 and 2 are independent and can be built in parallel once phase 0 lands. Phase 3's Google half is independent too. The helper half is signed and notarized for distribution (§10.3).
 
-## 10. Open questions
+### 9.1 Phase 0 as built (2026-11-16)
 
-1. **License:** MIT, or AGPL-3.0 (which keeps hosted forks open)?
-2. **Name:** for the app and the repo, before going public.
-3. **Mac helper distribution:** sign and notarize it with a Developer ID so the friend can install a `.pkg`, or have the friend build it from source? Unsigned builds lose the Calendar and Reminders grants on every rebuild.
-4. **Native apps:** later, pointed at the friend's server? That needs a neutral bundle id and team, and TestFlight or source builds.
-5. **Upstream relationship:** should the original personal organizer eventually run on this core, with its personal modules (health, challenge, agents, the job workspace) kept in a private add-on? That would avoid maintaining two copies of the calendar, reminders and mail code. The decision can wait until phase 3, but it changes how strictly the core's module boundaries need to hold.
-6. **Job tracker extras:** are message drafts and outreach rules wanted in v1, or is a plain tracker enough to start?
+Where the build differs from the sections above:
+- **Auth and accounts are core, not a module.** They live in `server/app/auth/` (principal, sessions, tokens, `/api/auth`, `/api/settings`) and `server/app/providers/` (`core_provider_accounts`, Fernet encryption via HKDF from `ORGANIZER_SECRET_KEY`, `/api/settings/accounts`). The web Settings page is `web/src/modules/settings/`.
+- **Scopes are `api`, `ingest` and `mail`** (not `mcp`/`mcp-mail`). The Mac helper will send `Authorization: Bearer` with an `ingest` token, so there is no separate `X-Ingest-Token`.
+- **A token's author is fixed when it is made.** The browser is always `me`, and there is no `X-Author` header.
+- **The owner's settings are bookkeeping, not audited records.** The config row (name, time zone, holiday country, password hash), sessions, tokens and accounts are kept out of `change_log` so that hashes and ciphertext never land there.
+- **Public routes:**
+  - `/api/health`;
+  - `/api/auth/state`, `/api/auth/setup` and `/api/auth/login`;
+  - the two pick lists setup needs (`/api/settings/timezones` and `/api/settings/holiday-countries`).
+
+  `tests/test_main.py` fails if any other route answers without auth.
+- **Login throttle:** in memory; 5 failures per client address in 15 minutes, and 30 overall per hour.
+- **Docker:** the container runs as a non-root user with a named volume, and the port is published on loopback only.
+
+## 10. Decisions (2026-11-16)
+
+1. **License:** MIT. `LICENSE` names "Life Organizer for Mac contributors" as the copyright holder, so no personal name is needed. Put a real name there before going public if you prefer one.
+2. **Name:** "Life Organizer for Mac", for the app and the repo. The repo itself is still `life-organizer-oss` until it is renamed. Note that the server runs on any Docker host and reads Google accounts too; only the helper and the native apps are Mac-specific.
+3. **Mac helper distribution:** sign it with a Developer ID and notarize it, as long as that stays simple: a `.pkg` or a zipped app built by one script. If notarizing turns out to be hard, ship build-from-source instructions first and report back.
+4. **Native apps:** yes, later. They will point at the friend's server, with a neutral bundle id, and ship through TestFlight or source builds.
+5. **Upstream relationship:** yes. The original personal organizer will eventually run on this core, with its personal modules in a private add-on. That makes the core's module boundaries strict:
+   - core code never names a module;
+   - modules reach each other only through published service functions;
+   - the extension points an add-on needs are kept public and documented: auto-discovered modules, calendar providers, freshness sources, revert hooks and token scopes.
+6. **Job tracker extras:** no. The friend just wants the tracker. Message drafts, draft context and outreach rules are left out of v1 (§5.3).
