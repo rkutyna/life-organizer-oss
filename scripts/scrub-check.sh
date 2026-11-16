@@ -4,6 +4,7 @@
 #   scripts/scrub-check.sh             # tracked files (default)
 #   scripts/scrub-check.sh --staged    # staged changes (the pre-commit hook)
 #   scripts/scrub-check.sh --history   # every commit on every ref
+#   scripts/scrub-check.sh --file PATH # one file, e.g. a commit message (the commit-msg hook)
 #
 # Two kinds of check:
 # 1. Generic, always on: absolute home-directory paths, tailnet host names, and email addresses
@@ -15,6 +16,7 @@
 set -euo pipefail
 
 mode="${1:---tree}"
+file_arg="${2:-}"
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
@@ -42,7 +44,8 @@ content() {
                  ":(exclude)server/uv.lock" ":(exclude)web/package-lock.json" \
                | sed -E -e 's/[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com/<github-noreply>/g' \
                    -e 's/^[+-]//' ;;
-    *) echo "usage: $0 [--tree|--staged|--history]" >&2; exit 2 ;;
+    --file) grep -v '^#' "${file_arg:?--file needs a path}" || true ;;
+    *) echo "usage: $0 [--tree|--staged|--history|--file PATH]" >&2; exit 2 ;;
   esac
 }
 

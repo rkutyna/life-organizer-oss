@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Refuses a commit message with personal data in it (scripts/scrub-check.sh).
+exec "$(git rev-parse --show-toplevel)/scripts/scrub-check.sh" --file "$1"
