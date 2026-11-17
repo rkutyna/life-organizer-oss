@@ -497,6 +497,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mail/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Accounts
+         * @description Each connected mail account and how fresh its header mirror is.
+         */
+        get: operations["mail_list_accounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail/imap-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Imap Presets
+         * @description Providers whose IMAP settings are known (the connect form's choices).
+         */
+        get: operations["mail_list_imap_presets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail/accounts/imap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect Imap
+         * @description Connect an IMAP account: tests the login (read-only) before anything is saved, stores the
+         *     password encrypted, and starts the first header sync.
+         */
+        post: operations["mail_connect_imap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail/accounts/{account_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Now
+         * @description Refresh one account's headers now (reads the mailbox; changes nothing in it).
+         */
+        post: operations["mail_sync_now"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Messages
+         * @description Mirrored headers, newest first. Never touches a mailbox.
+         */
+        get: operations["mail_list_messages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Message
+         * @description One message, fetched from its mailbox now and cleaned. The mailbox is not changed (it is
+         *     not even marked read).
+         */
+        get: operations["mail_read_message"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/status": {
         parameters: {
             query?: never;
@@ -911,6 +1033,260 @@ export interface components {
         LoginIn: {
             /** Password */
             password: string;
+        };
+        /** MailAccountOut */
+        MailAccountOut: {
+            /**
+             * Id
+             * @description The connected account's id (Settings, Connected accounts)
+             */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "imap" | "gmail";
+            /** Label */
+            label: string;
+            /** Address */
+            address: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "stale" | "error" | "never";
+            /**
+             * As Of
+             * @description The last successful header sync (UTC)
+             */
+            as_of: string | null;
+            /** Error */
+            error: string | null;
+        };
+        /** MailAddress */
+        MailAddress: {
+            /** Name */
+            name: string;
+            /** Address */
+            address: string;
+        };
+        /** MailAttachment */
+        MailAttachment: {
+            /** Filename */
+            filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size */
+            size: number;
+        };
+        /** MailImapConnect */
+        MailImapConnect: {
+            /**
+             * Preset
+             * @description A preset key, or "custom"
+             * @default custom
+             */
+            preset?: string;
+            /** Label */
+            label: string;
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+            /**
+             * Host
+             * @description Custom only; presets set it
+             */
+            host?: string | null;
+            /**
+             * Port
+             * @description Custom only; implicit TLS
+             * @default 993
+             */
+            port?: number;
+            /**
+             * Auth Servers
+             * @description Custom only: the receiving servers whose Authentication-Results headers can be believed (e.g. mx.example.com). Empty: sender checks read as unknown.
+             */
+            auth_servers?: string[];
+        };
+        /** MailImapPreset */
+        MailImapPreset: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Host */
+            host: string;
+            /** Port */
+            port: number;
+            /** Help */
+            help: string;
+        };
+        /** MailMessageDetail */
+        MailMessageDetail: {
+            /** Id */
+            id: number;
+            /**
+             * Account
+             * @description The account's id (see accounts)
+             */
+            account: number;
+            /**
+             * Folder
+             * @enum {string}
+             */
+            folder: "inbox" | "sent";
+            from: components["schemas"]["MailAddress"];
+            /**
+             * Sender Warning
+             * @description Why the From line may not be the real sender; null when nothing is odd
+             */
+            sender_warning: string | null;
+            /** To */
+            to: components["schemas"]["MailAddress"][];
+            /** Cc */
+            cc: components["schemas"]["MailAddress"][];
+            /** Subject */
+            subject: string;
+            /**
+             * Date
+             * Format: date-time
+             */
+            date: string;
+            /** Size */
+            size: number | null;
+            /** Message Id */
+            message_id: string | null;
+            /** In Reply To */
+            in_reply_to: string | null;
+            /**
+             * Untrusted
+             * @description Always true: mail text is written by whoever sent it
+             * @default true
+             */
+            untrusted?: boolean;
+            /** Reply To */
+            reply_to: components["schemas"]["MailAddress"][];
+            /** Body */
+            body: string;
+            /**
+             * Body Source
+             * @description html: HTML converted to the text a mail app shows; plain: a text part; mixed: several displayed parts
+             * @enum {string}
+             */
+            body_source: "html" | "plain" | "mixed" | "none";
+            /** Truncated */
+            truncated: boolean;
+            /**
+             * Attachments
+             * @description Names, types and sizes only
+             */
+            attachments: components["schemas"]["MailAttachment"][];
+            /** @description As the receiving server recorded them; null when it recorded none */
+            sender_checks: components["schemas"]["MailSenderChecks"] | null;
+            /** @description What the cleaner took out before serving the body; common in newsletters (hidden preview text), so counted rather than warned about */
+            removed: components["schemas"]["MailRemoved"];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** MailMessageList */
+        MailMessageList: {
+            /** Accounts */
+            accounts: components["schemas"]["MailAccountOut"][];
+            /** Messages */
+            messages: components["schemas"]["MailMessageOut"][];
+            /**
+             * Untrusted
+             * @description Always true: mail text is written by whoever sent it
+             * @default true
+             */
+            untrusted?: boolean;
+        };
+        /** MailMessageOut */
+        MailMessageOut: {
+            /** Id */
+            id: number;
+            /**
+             * Account
+             * @description The account's id (see accounts)
+             */
+            account: number;
+            /**
+             * Folder
+             * @enum {string}
+             */
+            folder: "inbox" | "sent";
+            from: components["schemas"]["MailAddress"];
+            /**
+             * Sender Warning
+             * @description Why the From line may not be the real sender; null when nothing is odd
+             */
+            sender_warning: string | null;
+            /** To */
+            to: components["schemas"]["MailAddress"][];
+            /** Cc */
+            cc: components["schemas"]["MailAddress"][];
+            /** Subject */
+            subject: string;
+            /**
+             * Date
+             * Format: date-time
+             */
+            date: string;
+            /** Size */
+            size: number | null;
+            /** Message Id */
+            message_id: string | null;
+            /** In Reply To */
+            in_reply_to: string | null;
+            /**
+             * Untrusted
+             * @description Always true: mail text is written by whoever sent it
+             * @default true
+             */
+            untrusted?: boolean;
+        };
+        /** MailRemoved */
+        MailRemoved: {
+            /**
+             * Hidden Chars
+             * @description Characters of text styled not to show, taken out
+             */
+            hidden_chars: number;
+            /**
+             * Invisible Chars
+             * @description Invisible characters taken out
+             */
+            invisible_chars: number;
+        };
+        /** MailSenderChecks */
+        MailSenderChecks: {
+            /**
+             * Verified
+             * @description DMARC passed for the From address's own domain: the only case where the From address is known to be real
+             */
+            verified: boolean;
+            /** Spf */
+            spf?: string | null;
+            /** Dkim */
+            dkim?: string | null;
+            /** Dmarc */
+            dmarc?: string | null;
+            /**
+             * Dmarc From
+             * @description The domain DMARC checked (header.from)
+             */
+            dmarc_from?: string | null;
+        };
+        /** MailSyncOut */
+        MailSyncOut: {
+            /** Listed */
+            listed: number;
+            /** Added */
+            added: number;
+            /** Removed */
+            removed: number;
         };
         /** ModuleInfo */
         ModuleInfo: {
@@ -1932,6 +2308,219 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalendarPushOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_list_accounts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailAccountOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_list_imap_presets: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailImapPreset"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_connect_imap: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailImapConnect"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_sync_now: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                account_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailSyncOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_list_messages: {
+        parameters: {
+            query?: {
+                /** @description An account id (see accounts) */
+                account?: number | null;
+                folder?: ("inbox" | "sent") | null;
+                /** @description Local date, inclusive */
+                since?: string | null;
+                /** @description Local date, inclusive */
+                until?: string | null;
+                /** @description Matches subject, sender or recipients, any case */
+                q?: string | null;
+                /** @description Matches the sender's name or address */
+                sender?: string | null;
+                limit?: number;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailMessageList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mail_read_message: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailMessageDetail"];
                 };
             };
             /** @description Validation Error */

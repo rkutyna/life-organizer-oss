@@ -45,9 +45,9 @@ Do not publish the port on the open internet without HTTPS in front.
 
 ## 3. Connect Claude (optional)
 
-In **Settings → API tokens**, make a token with author "Claude" and scope `api`. The MCP
-server instructions arrive with the calendar, reminders and jobs features. Mail needs a
-separate token with the `mail` scope, so a general Claude token can't read your mail.
+In **Settings → API tokens**, make a token with author "Claude" and scope `api`, then follow
+docs/MCP.md. Mail needs a separate token with the `mail` scope, so a general Claude token can't
+read your mail. Connecting mail accounts is covered in docs/MAIL.md.
 
 ## Updating
 
