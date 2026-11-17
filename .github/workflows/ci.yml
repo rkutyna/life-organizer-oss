@@ -30,6 +30,18 @@ jobs:
       - run: uv run ruff check . && uv run ruff format --check .
       - run: uv run pytest
 
+  mcp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run pytest
+
   web:
     runs-on: ubuntu-latest
     defaults:
@@ -50,3 +62,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -f deploy/Dockerfile -t organizer:ci .
+      - run: docker build -t organizer-mcp:ci mcp

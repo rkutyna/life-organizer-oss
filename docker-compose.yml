@@ -29,5 +29,58 @@ services:
       - organizer-data:/app/server/data
     restart: unless-stopped
 
+  # Optional: the MCP tools over streamable HTTP for claude.ai, behind Cloudflare Access
+  # (docs/MCP.md). Off unless started with `--profile mcp` (or COMPOSE_PROFILES=mcp in .env).
+  # Its settings come from .env with empty defaults, so the stack starts without them; the
+  # container itself refuses to start, naming what is missing, until they are set.
+  organizer-mcp:
+    profiles: ["mcp"]
+    build:
+      context: ./mcp
+    image: organizer-mcp:latest
+    container_name: organizer-mcp
+    depends_on:
+      - organizer
+    ports:
+      - "127.0.0.1:${MCP_PORT:-8601}:8601"
+    environment:
+      ORGANIZER_URL: http://organizer:8600
+      # A token with the `api` scope, made in Settings → API tokens with author claude_remote.
+      ORGANIZER_TOKEN: ${ORGANIZER_MCP_TOKEN:-}
+      MCP_PUBLIC_HOST: ${MCP_PUBLIC_HOST:-}
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
+      MCP_ALLOWED_EMAIL: ${MCP_ALLOWED_EMAIL:-}
+      ORGANIZER_MCP_TOOLSETS: ${ORGANIZER_MCP_TOOLSETS:-all}
+      ORGANIZER_MCP_READ_ONLY: ${ORGANIZER_MCP_READ_ONLY:-0}
+    restart: unless-stopped
+
+  # Optional: mail as its own claude.ai connector, so mail has its own Access grant and is
+  # switched on per chat. Off unless started with `--profile mcp-mail`. The same image, serving
+  # only the opt-in `mail` toolset, read-only; those two settings are fixed here, not taken from
+  # .env (the server also refuses mail beside any write tool). It alone gets the mail token, and
+  # organizer-mcp never does.
+  organizer-mcp-mail:
+    profiles: ["mcp-mail"]
+    build:
+      context: ./mcp
+    image: organizer-mcp:latest
+    container_name: organizer-mcp-mail
+    depends_on:
+      - organizer
+    ports:
+      - "127.0.0.1:${MCP_MAIL_PORT:-8602}:8601"
+    environment:
+      ORGANIZER_URL: http://organizer:8600
+      # A token with the `mail` scope, made in Settings → API tokens with author claude_remote.
+      ORGANIZER_MAIL_TOKEN: ${ORGANIZER_MCP_MAIL_TOKEN:-}
+      MCP_PUBLIC_HOST: ${MCP_MAIL_PUBLIC_HOST:-}
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${MCP_MAIL_CF_ACCESS_AUD:-}
+      MCP_ALLOWED_EMAIL: ${MCP_ALLOWED_EMAIL:-}
+      ORGANIZER_MCP_TOOLSETS: mail
+      ORGANIZER_MCP_READ_ONLY: "1"
+    restart: unless-stopped
+
 volumes:
   organizer-data:

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["uv_build==0.12.23"]
+build-backend = "uv_build"
+
+[project]
+name = "organizer-mcp"
+version = "0.1.0"
+description = "MCP server for the organizer: Claude reads your calendar, and your mail if you opt in, through the REST API"
+requires-python = ">=3.12,<3.13"
+# Exact pins, each public for at least a few weeks before the cutoff below.
+# mcp 2.x renamed FastMCP to MCPServer, so this stays on the 1.x line.
+dependencies = [
+    "mcp==1.30.0",
+    "httpx==0.28.1",
+    # Already in the lock through mcp; pinned directly because organizer_mcp.access imports it.
+    "pyjwt[crypto]==2.15.1",
+]
+
+[project.scripts]
+organizer-mcp = "organizer_mcp.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.17.1",
+]
+
+[tool.uv]
+# Only resolve releases that have been public for a few weeks (same policy as server/).
+exclude-newer = "2026-10-20T00:00:00Z"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

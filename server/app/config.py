@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # Background polls (APScheduler). Off in tests.
     scheduler_enabled: bool = True
 
+    # Mail (app/modules/mail, docs/MAIL.md): how many days back the header mirror reaches.
+    # Older messages drop out of it.
+    mail_window_days: int = Field(default=30, ge=1, le=365)
+
 
 @lru_cache
 def get_settings() -> Settings:
