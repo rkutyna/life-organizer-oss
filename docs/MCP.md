@@ -37,6 +37,15 @@ without the token its toolsets need, and names the variable to set. `ORGANIZER_U
 organizer's address (default `http://localhost:8600`; set it if you changed `ORGANIZER_PORT` or
 reach the organizer elsewhere); `ORGANIZER_TIMEOUT` is in seconds (default 15).
 
+**An organizer behind Cloudflare Access.** Access stops a client that can't sign in with a
+browser. Give the MCP server a Cloudflare Access service token
+([CLOUDFLARE.md](CLOUDFLARE.md), step 5) in `ORGANIZER_CF_ACCESS_CLIENT_ID` and
+`ORGANIZER_CF_ACCESS_CLIENT_SECRET`. With both set, every request to the organizer carries them
+as `CF-Access-Client-Id` and `CF-Access-Client-Secret`, beside the API token. Set both or
+neither: with one, the server refuses to start and names the other. A call that Access redirects
+to its sign-in page fails with a message saying which settings to check. The secret is never
+logged.
+
 ### Checking it without Claude
 
 From `mcp/`, with a token from Settings → API tokens:
@@ -64,10 +73,11 @@ claude mcp add --env ORGANIZER_URL=https://organizer.example.com \
 Keep another option between the last `--env` and the server's name: directly after `--env`,
 Claude Code reads the name as one more variable and rejects it
 ([Claude Code MCP docs](https://code.claude.com/docs/en/mcp)). `ORGANIZER_URL` must be an
-address that needs no browser sign-in: `http://localhost:8600` on the organizer's own machine,
-or its Tailscale address. A hostname behind Cloudflare Access stops token clients
-([CLOUDFLARE.md](CLOUDFLARE.md)). Check it with `claude mcp list`, which shows
-`✔ Connected`.
+address the server can reach: `http://localhost:8600` on the organizer's own machine, its
+Tailscale address, or a hostname behind Cloudflare Access together with a service token
+(add `--env ORGANIZER_CF_ACCESS_CLIENT_ID=<client id>` and
+`--env ORGANIZER_CF_ACCESS_CLIENT_SECRET=<client secret>`, see above). Check it with
+`claude mcp list`, which shows `✔ Connected`.
 
 For mail, add a second server with its own token:
 

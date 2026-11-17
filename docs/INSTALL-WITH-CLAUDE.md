@@ -19,8 +19,9 @@ when it doesn't. Work through the steps in order, and stop at every decision poi
      suggest, generate, store or type it.
    - **Any other password, app-specific password, or OAuth consent screen** (iCloud, IMAP,
      Google, Cloudflare, Claude). Only the owner may grant access to their accounts.
-   - **API token secrets and the Cloudflare tunnel token.** The human copies them from the
-     screen and pastes them into `.env` or a terminal themselves. Never ask for them in chat.
+   - **API token secrets, Cloudflare service token secrets and the tunnel token.** The human
+     copies them from the screen and pastes them into `.env`, an app's settings or a terminal
+     themselves. Never ask for them in chat.
    - **Cloudflare and Claude dashboard clicks.** They need the human's login, and some of them
      (an Access policy, a WAF rule) decide who can reach the owner's data.
 2. **Never print a secret.** Don't `cat .env`, don't run `docker compose config` without
@@ -174,7 +175,7 @@ Tailscale, Cloudflare, or neither for now.
 |---|---|---|
 | Who can reach it | Only the owner's devices, signed in to their tailnet | Any browser, after Cloudflare Access lets only the owner's email in |
 | Needs | A free Tailscale account, the app on each device | A domain on Cloudflare, a free Zero Trust organization |
-| Mac helper, Claude Code on other machines | Work over the tailnet address | Can't pass Access; run them on this machine or use Tailscale for them |
+| Mac app, Mac helper, Claude Code on other machines | Work over the tailnet address | Each needs a Cloudflare Access service token (CLOUDFLARE.md step 5), or runs on this machine with localhost |
 | claude.ai connector (step 10) | Not possible over Tailscale alone | Same tunnel |
 
 Recommend Tailscale for the devices. Cloudflare is needed anyway for step 10; the two mix
@@ -215,8 +216,12 @@ Follow [CLOUDFLARE.md](CLOUDFLARE.md) with the human. Split of work:
 | Tunnel route `organizer.<domain>` → `http://organizer:8600` (`http://127.0.0.1:8600` if cloudflared runs on the host) | **[HUMAN]** (dashboard) |
 | Access application for that hostname, Allow policy with their email | **[HUMAN]** (dashboard; it decides who gets in) |
 | `PUBLIC_BASE_URL=https://organizer.<domain>`, `COOKIE_SECURE=always`, `docker compose up -d` | agent |
+| For each token client (Mac app, Mac helper, Claude Code on another machine): a service token, created in Zero Trust → Access controls → Service credentials → Service Tokens | **[HUMAN]** (dashboard; the Client Secret is shown once and is a secret) |
+| A **Service Auth** policy on the web application that includes those service tokens (not Allow, not "Any Access Service Token") | **[HUMAN]** (dashboard) |
 
-Do the Access application **before** telling the human to open the hostname.
+Do the Access application **before** telling the human to open the hostname. The service tokens
+can wait until steps 9, 11 and 12 need them; CLOUDFLARE.md step 5 covers expiry, rotation and
+revoking, so tell the human about the expiry notification there.
 
 **Verify:**
 
@@ -294,7 +299,10 @@ Needs `uv` and `claude` (step 1).
    Keep an option such as `--transport` between the last `--env` and the name; directly after
    `--env`, the name is read as another variable. `ORGANIZER_URL` is `http://localhost:8600`
    when Claude Code runs on this machine, or the Tailscale address from another machine.
-   Through Cloudflare Access it won't work (step 6 table).
+   Behind Cloudflare Access, use the HTTPS hostname and add a service token for Claude Code
+   (CLOUDFLARE.md step 5) with two more options, which the human also fills in:
+   `--env ORGANIZER_CF_ACCESS_CLIENT_ID=<client id> --env ORGANIZER_CF_ACCESS_CLIENT_SECRET=<client secret>`.
+   Both or neither: with only one, the server refuses to start and names the missing one.
 3. Mail (optional): a second token, scope **Mail**, author **Claude**, and a second server:
 
    ```bash
@@ -362,9 +370,10 @@ It is built from source with Xcode; **no paid Apple developer account is needed*
 `apple/README.md` in this repo. If that file isn't in the checkout yet, tell the human the Mac
 app isn't available in this version and skip the step.
 
-If the human chose Cloudflare for the web app, check in `apple/README.md` how the app reaches
-the server: a client that signs in with an API token instead of a browser can't pass Cloudflare
-Access, so it would need this machine's localhost address or Tailscale.
+If the human chose Cloudflare for the web app, the app needs a service token of its own
+(CLOUDFLARE.md step 5). **[HUMAN]** enters its Client ID and Client Secret in the app's
+Settings → Advanced (the environment variables `ORGANIZER_CF_ACCESS_CLIENT_ID` and
+`ORGANIZER_CF_ACCESS_CLIENT_SECRET` override them). The details are in `apple/README.md`.
 
 ## Step 12. The Mac helper (optional)
 
@@ -384,7 +393,10 @@ Follow [mac-helper/README.md](../mac-helper/README.md). Split of work:
 | `organizer-helper install`, then approve the Calendars and Reminders prompts | agent runs it; **[HUMAN]** answers the macOS prompts |
 
 `server.url` is `http://localhost:8600` when the helper runs on the organizer's own Mac, or the
-Tailscale address. Through Cloudflare Access it can't connect.
+Tailscale address. Behind Cloudflare Access, it is the HTTPS hostname, and the helper needs a
+service token of its own (CLOUDFLARE.md step 5): the agent sets `server.cf_access_client_id` in
+the config, and **[HUMAN]** puts the secret in `server.cf_access_client_secret` or in the Keychain,
+as `mac-helper/README.md` describes. `doctor` then shows whether Access let it through.
 
 **Verify:** `organizer-helper doctor` ends without failures, `organizer-helper status` shows a
 recent push, and the organizer's Reminders page shows the Apple lists within a few minutes.

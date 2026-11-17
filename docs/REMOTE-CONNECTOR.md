@@ -6,7 +6,9 @@ end-to-end setup: Cloudflare Tunnel, a Cloudflare Access application that does t
 sign-in, the `organizer-mcp` container, and adding the connector in Claude.
 
 For Claude Code, you don't need any of this: the stdio server in [MCP.md](MCP.md) is simpler and
-never leaves your machine. The tunnel itself is covered in [CLOUDFLARE.md](CLOUDFLARE.md); this
+never leaves your machine. (If your organizer's web hostname is behind Cloudflare Access, the
+stdio server reaches it with a service token; see [CLOUDFLARE.md](CLOUDFLARE.md), step 5. The
+connector below needs none: its container talks to the organizer on the compose network.) The tunnel itself is covered in [CLOUDFLARE.md](CLOUDFLARE.md); this
 page assumes you have one.
 
 The Cloudflare and Claude names below were checked against their documentation in November 2026,

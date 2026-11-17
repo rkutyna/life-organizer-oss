@@ -49,8 +49,8 @@ The app listens on the host's loopback (`127.0.0.1:8600`) only. Choose one of th
      the Google redirect URI `https://organizer.example.com/api/oauth/google/callback`.
 
    The organizer's own password still applies behind Access. Clients that use an API token
-   instead of a browser (the Mac helper, Claude Code on another machine) can't pass Access; use
-   them on the server itself or over Tailscale. The claude.ai connector also uses Cloudflare,
+   instead of a browser (the Mac app, the Mac helper, Claude Code on another machine) each get a
+   Cloudflare Access service token to pass Access ([CLOUDFLARE.md](CLOUDFLARE.md), step 5). The claude.ai connector also uses Cloudflare,
    on its own hostname ([REMOTE-CONNECTOR.md](REMOTE-CONNECTOR.md)); Tailscale for your devices
    plus Cloudflare for the connector is a good mix.
 3. **Your LAN only.** Change the port mapping in `docker-compose.yml` to `"8600:8600"`. Without
