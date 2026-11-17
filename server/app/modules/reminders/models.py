@@ -21,6 +21,11 @@ Owned, written only through `app.audit`:
 
 Bookkeeping:
 - `HelperContact`: when the helper last polled for ops, for the "waiting for the Mac" state.
+- `ServerInstance`: one row, made once, whose random id tells the helper this database from an
+  earlier or later one (op ids restart when a database is recreated).
+
+Ids are never reused (`sqlite_autoincrement`): an op names its reminder by id, and the helper
+names ops by id, so a deleted row's id must not come back for an unrelated one.
 """
 
 from datetime import date, datetime, time
@@ -61,6 +66,7 @@ class ReminderList(Base):
 
 class Reminder(Base):
     __tablename__ = "reminders_items"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source: Mapped[str] = mapped_column(String(16), default="apple", index=True)
@@ -90,6 +96,9 @@ class Reminder(Base):
     ext_modified_at: Mapped[datetime | None]
     # When a sync last carried this row. Null: a placeholder the provider has not reported.
     received_at: Mapped[datetime | None]
+    # When a sync first carried this provider reminder (never updated). A create's ack may fold
+    # a row into its placeholder only if the row first arrived after the op was queued.
+    first_received_at: Mapped[datetime | None]
 
 
 class ReminderOp(OwnedMixin, Base):
@@ -97,9 +106,16 @@ class ReminderOp(OwnedMixin, Base):
     and `created_by` who asked (me from the web app, claude from MCP)."""
 
     __tablename__ = "reminders_ops"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     reminder_id: Mapped[int] = mapped_column(index=True)
+    # The target reminder as it was when the op was queued: its source and account, and (in
+    # ext_id/local_id below) its provider ids. An op is retried or dispatched only while the
+    # row `reminder_id` still is that reminder (sync.target_matches). Null source: queued
+    # before targets were recorded, never checked.
+    source: Mapped[str | None] = mapped_column(String(16))
+    account_id: Mapped[int | None]
     # create | update | complete | uncomplete
     kind: Mapped[str] = mapped_column(String(16))
     # helper (Apple Reminders, applied by the Mac) | server (Google Tasks, applied here)
@@ -114,7 +130,8 @@ class ReminderOp(OwnedMixin, Base):
     state: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     # Server ops: how many times applying was tried (transient errors are retried).
     attempts: Mapped[int] = mapped_column(default=0)
-    # create: the new reminder's ids, from the ack (helper) or the API's answer (server).
+    # The target's provider ids: copied from the row when queued, and for a create (queued on
+    # a placeholder that has none) the new reminder's ids from the ack or the API's answer.
     ext_id: Mapped[str | None] = mapped_column(String(1000))
     local_id: Mapped[str | None] = mapped_column(String(1000))
     applied_at: Mapped[datetime | None]
@@ -130,3 +147,16 @@ class HelperContact(Base):
 
     kind: Mapped[str] = mapped_column(String(32), primary_key=True)
     at: Mapped[datetime]
+
+
+class ServerInstance(Base):
+    """This database's identity, made once (sync.instance_id). Bookkeeping, not owned."""
+
+    __tablename__ = "reminders_instance"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    instance_id: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime]
+
+
+from app.modules.reminders import revert_hooks  # noqa: E402, F401

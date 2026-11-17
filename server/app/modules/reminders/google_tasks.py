@@ -1,9 +1,10 @@
 """Google Tasks, both ways: the poll that mirrors an account's lists and tasks, and the server
 applier that carries the organizer's ops to Google right away.
 
-The poll reads every task list and its tasks (completed and hidden ones too, then keeps open
-tasks and those completed in the last 30 days) and replaces that account's rows, all or
-nothing, through `sync.replace_snapshot`.
+The poll reads every task list and its tasks (open ones, and those completed in the last 30
+days: `completedMin`) and replaces that account's rows, all or nothing, through
+`sync.replace_snapshot`. A list longer than MAX_PAGES pages fails the poll with an error rather
+than mirroring part of it (the rest would look deleted).
 
 The applier follows the same rules as the Mac helper (docs/REMINDERS.md):
 - the loop rule: a field still equal to the op's `base` takes the op's value;
@@ -20,6 +21,12 @@ Errors: a refused grant or a 4xx answer fails the op (it can be retried or withd
 network error, a 429 or a 5xx leaves it pending, and the next poll retries it, up to
 MAX_ATTEMPTS.
 
+A create whose answer was lost (a timeout or a 5xx after Google saved it, or the server
+stopping mid-request) may have landed. So before every create the applier looks for the task
+it would make: same list, title, notes and due date, updated since the op was queued, and not
+a task the organizer already knew or another create made. If one is there it is adopted, never
+created twice.
+
 HTTP goes through `app.providers.google.make_client()`, which tests point at an
 `httpx.MockTransport`.
 """
@@ -27,11 +34,12 @@ HTTP goes through `app.providers.google.make_client()`, which tests point at an
 import hashlib
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from urllib.parse import quote
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import audit, freshness
@@ -50,6 +58,8 @@ API = "https://tasks.googleapis.com/tasks/v1"
 PAGE_SIZE = 100
 MAX_PAGES = 50
 MAX_ATTEMPTS = 5
+# Google's clock and ours may differ a little: look this much before the op's queue time.
+CLOCK_SKEW = timedelta(minutes=1)
 ACCOUNT_TYPE = "google"
 AUTHOR = "system"
 # Google Tasks lists have no color; each list gets a stable one from this palette.
@@ -98,6 +108,7 @@ def _error(response: httpx.Response, action: str) -> GoogleTasksError:
 def _pages(
     http: httpx.Client, url: str, params: dict[str, str], headers: dict[str, str]
 ) -> list[dict[str, Any]]:
+    """Every page of a list request. Raises rather than return part of the list."""
     items: list[dict[str, Any]] = []
     page_token: str | None = None
     for _ in range(MAX_PAGES):
@@ -109,8 +120,11 @@ def _pages(
         items.extend(body.get("items", []) or [])
         page_token = body.get("nextPageToken")
         if not page_token:
-            break
-    return items
+            return items
+    raise GoogleTasksError(
+        f"a Google Tasks list has more than {MAX_PAGES * PAGE_SIZE} entries; "
+        "the organizer mirrors at most that many and did not sync this account"
+    )
 
 
 def _task_url(list_id: str, task_id: str | None = None) -> str:
@@ -144,6 +158,10 @@ def due_date(value: Any) -> date | None:
 def wire_due(value: str | None) -> str | None:
     """A wire due_date ("YYYY-MM-DD") as Google's RFC 3339 due value."""
     return f"{value}T00:00:00.000Z" if value else None
+
+
+def rfc3339(value: datetime) -> str:
+    return value.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def incoming(task: dict[str, Any], list_id: str) -> sync.IncomingReminder:
@@ -184,7 +202,10 @@ def sync_account(
     *,
     now: datetime | None = None,
 ) -> SyncResult:
-    """Poll one Google account and replace its rows. Errors are recorded and re-raised."""
+    """Poll one Google account and replace its rows. Errors are recorded and re-raised.
+
+    `now` is the poll's start: a row the applier wrote after it is newer than what the poll
+    read, and the snapshot leaves it alone (sync.replace_snapshot)."""
     now = now or utcnow()
     key = freshness_key(account.id)
     name = account_name(account)
@@ -213,6 +234,9 @@ def sync_account(
                     "showCompleted": "true",
                     "showHidden": "true",
                     "showDeleted": "false",
+                    # Only tasks completed since the cutoff: without it every task ever
+                    # completed comes back, and the page cap would cut off open ones.
+                    "completedMin": rfc3339(cutoff),
                     "maxResults": str(PAGE_SIZE),
                 }
                 for task in _pages(http, _task_url(list_id), params, headers):
@@ -262,6 +286,8 @@ def apply_op(
     """Apply one server op now and record the outcome through app.audit. Never raises."""
     if row is None:
         return _fail(session, op, "the reminder is gone from Google Tasks")
+    if not sync.target_matches(op, row):
+        return _fail(session, op, sync.STALE_TARGET)
     account = session.get(ProviderAccount, row.account_id) if row.account_id else None
     if account is None or not account.enabled:
         return _fail(session, op, "the Google account is not connected; reconnect it in Settings")
@@ -269,7 +295,7 @@ def apply_op(
         token = google.access_token(session, settings, account)
         with google.make_client() as http:
             if op.kind == "create":
-                task, list_id, conflicts = _create(http, token, op)
+                task, list_id, conflicts = _create(session, http, token, op, row)
             else:
                 task, list_id, conflicts = _change(http, token, op, row)
     except google.GoogleAuthError as exc:
@@ -294,8 +320,12 @@ def apply_op(
             conflicts=conflicts,
             author=AUTHOR,
         )
-        # Mirror Google's answer now: the overlay ends, the reminder is synced.
-        sync.fill(row, incoming(task, list_id), utcnow())
+        if op.state == "applied":
+            # Mirror Google's answer now: the overlay ends, the reminder is synced.
+            old_ext_id = row.ext_id
+            sync.fill(row, incoming(task, list_id), utcnow())
+            if op.kind != "create":
+                sync.retarget(session, row, old_ext_id, AUTHOR)
         session.flush()
     return op
 
@@ -324,7 +354,7 @@ def _retry_later(session: Session, op: ReminderOp, message: str) -> ReminderOp:
 
 
 def _create(
-    http: httpx.Client, token: str, op: ReminderOp
+    session: Session, http: httpx.Client, token: str, op: ReminderOp, row: Reminder
 ) -> tuple[dict[str, Any], str, list[dict[str, Any]]]:
     fields = op.payload or {}
     list_id = str(fields.get("list_id") or "")
@@ -333,10 +363,71 @@ def _create(
     body: dict[str, Any] = {"title": fields.get("title") or "", "notes": fields.get("notes") or ""}
     if fields.get("due_date"):
         body["due"] = wire_due(fields["due_date"])
+    landed = _already_created(session, http, token, op, row, list_id)
+    if landed is not None:
+        log.info("reminders: op %s's create had already reached Google; adopting it", op.id)
+        return landed, list_id, []
     response = http.post(_task_url(list_id), json=body, headers=_headers(token))
     if response.status_code not in (200, 201):
         raise _error(response, "creating a task")
     return response.json(), list_id, []
+
+
+def _already_created(
+    session: Session,
+    http: httpx.Client,
+    token: str,
+    op: ReminderOp,
+    row: Reminder,
+    list_id: str,
+) -> dict[str, Any] | None:
+    """The task an earlier try of this create made, if its answer was lost: in the op's list,
+    updated since the op was queued, with the op's title, notes and due date, and neither a task
+    the organizer knew before the op nor one another create made."""
+    fields = op.payload or {}
+    params = {
+        "showCompleted": "true",
+        "showHidden": "true",
+        "showDeleted": "false",
+        "updatedMin": rfc3339(op.created_at - CLOCK_SKEW),
+        "maxResults": str(PAGE_SIZE),
+    }
+    for task in _pages(http, _task_url(list_id), params, _headers(token)):
+        if task.get("deleted") or not task.get("id"):
+            continue
+        if (
+            str(task.get("title") or "") != (fields.get("title") or "")
+            or str(task.get("notes") or "") != (fields.get("notes") or "")
+            or sync.wire_date(due_date(task.get("due"))) != fields.get("due_date")
+        ):
+            continue
+        if not _claimed(session, op, row, str(task["id"])):
+            return task
+    return None
+
+
+def _claimed(session: Session, op: ReminderOp, row: Reminder, task_id: str) -> bool:
+    """Whether the task is already some other reminder of the organizer's: a row first seen
+    before the op was queued, or another create's result."""
+    others = session.scalars(
+        select(Reminder).where(
+            Reminder.source == "google",
+            Reminder.account_id == row.account_id,
+            Reminder.ext_id == task_id,
+            Reminder.id != row.id,
+        )
+    )
+    for other in others:
+        if other.first_received_at is None or other.first_received_at < op.created_at:
+            return True
+    made = session.scalars(
+        select(ReminderOp.id).where(
+            ReminderOp.kind == "create",
+            ReminderOp.ext_id == task_id,
+            ReminderOp.id != op.id,
+        )
+    ).first()
+    return made is not None
 
 
 def _provider_values(task: dict[str, Any], list_id: str) -> dict[str, Any]:

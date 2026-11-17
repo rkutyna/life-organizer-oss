@@ -23,14 +23,18 @@ SyncState = Literal["synced", "syncing", "waiting_for_device", "failed"]
 SyncField = Literal["title", "notes", "due", "priority", "completed", "list"]
 # Op payload values in wire form: due_date "YYYY-MM-DD", due_time "HH:MM", priority 1-3.
 OpFieldValue = str | int | None
+# Notes up to this many characters (the Mac helper's snapshots are bounded the same way).
+MAX_NOTES = 100_000
 
 
 class ReminderCreate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     list_id: str | None = Field(
-        default=None, description="A list id from /api/reminders/lists; default: the default list"
+        default=None,
+        max_length=1000,
+        description="A list id from /api/reminders/lists; default: the default list",
     )
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_NOTES)
     due_date: date | None = None
     due_time: time | None = Field(
         default=None, description="Needs due_date; minute precision. Not for Google Tasks lists."
@@ -62,11 +66,11 @@ class ReminderUpdate(BaseModel):
     """
 
     title: str | None = Field(default=None, min_length=1, max_length=500)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_NOTES)
     due_date: date | None = None
     due_time: time | None = None
     priority: int | None = Field(default=None, ge=1, le=3)
-    list_id: str | None = None
+    list_id: str | None = Field(default=None, max_length=1000)
 
     @field_validator("title")
     @classmethod
