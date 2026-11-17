@@ -4,6 +4,10 @@
   ORGANIZER_TIMEOUT     seconds to wait for an answer (default 15)
   ORGANIZER_TOKEN       an API token with the `api` scope, for every toolset but mail
   ORGANIZER_MAIL_TOKEN  an API token with the `mail` scope, for the mail toolset only
+  ORGANIZER_CF_ACCESS_CLIENT_ID, ORGANIZER_CF_ACCESS_CLIENT_SECRET
+                        a Cloudflare Access service token, for an organizer behind Access
+                        (docs/CLOUDFLARE.md). Optional; set both or neither. The client then
+                        sends them as CF-Access-Client-Id and CF-Access-Client-Secret
 
 Tokens are made in the organizer's Settings → API tokens. A token's author is fixed when it is
 made, so the organizer's history shows which client wrote what: use author `claude` for Claude
@@ -14,7 +18,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 DEFAULT_URL = "http://localhost:8600"
@@ -24,6 +28,8 @@ Scope = Literal["api", "mail"]
 TOKEN_ENV = "ORGANIZER_TOKEN"
 MAIL_TOKEN_ENV = "ORGANIZER_MAIL_TOKEN"
 TOKEN_ENVS: dict[str, str] = {"api": TOKEN_ENV, "mail": MAIL_TOKEN_ENV}
+CF_ACCESS_ID_ENV = "ORGANIZER_CF_ACCESS_CLIENT_ID"
+CF_ACCESS_SECRET_ENV = "ORGANIZER_CF_ACCESS_CLIENT_SECRET"
 
 
 class ConfigError(Exception):
@@ -34,8 +40,12 @@ class ConfigError(Exception):
 class Settings:
     url: str
     timeout: float
-    token: str | None = None
-    mail_token: str | None = None
+    token: str | None = field(default=None, repr=False)
+    mail_token: str | None = field(default=None, repr=False)
+    # A Cloudflare Access service token. The secret is kept out of repr, so it never reaches a
+    # log or a traceback through this object.
+    cf_access_client_id: str | None = None
+    cf_access_client_secret: str | None = field(default=None, repr=False)
 
     def token_for(self, scope: str) -> str | None:
         return self.mail_token if scope == "mail" else self.token
@@ -69,11 +79,22 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         if timeout <= 0:
             raise ConfigError(f"ORGANIZER_TIMEOUT must be positive, got {raw_timeout!r}")
 
+    cf_id = (source.get(CF_ACCESS_ID_ENV) or "").strip() or None
+    cf_secret = (source.get(CF_ACCESS_SECRET_ENV) or "").strip() or None
+    if bool(cf_id) != bool(cf_secret):
+        missing = CF_ACCESS_SECRET_ENV if cf_id else CF_ACCESS_ID_ENV
+        raise ConfigError(
+            f"{missing} is not set: a Cloudflare Access service token needs both "
+            f"{CF_ACCESS_ID_ENV} and {CF_ACCESS_SECRET_ENV} (or neither)"
+        )
+
     return Settings(
         url=url,
         timeout=timeout,
         token=(source.get(TOKEN_ENV) or "").strip() or None,
         mail_token=(source.get(MAIL_TOKEN_ENV) or "").strip() or None,
+        cf_access_client_id=cf_id,
+        cf_access_client_secret=cf_secret,
     )
 
 

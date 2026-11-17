@@ -227,3 +227,154 @@ def test_require_tokens_names_each_missing_one() -> None:
         require_tokens(settings, {"api", "mail"})
     with pytest.raises(ConfigError, match="^ORGANIZER_TOKEN is not set"):
         require_tokens(Settings("http://organizer.test", 5), {"api"})
+
+
+# --------------------------------------------------------------------------- Cloudflare Access
+
+CF_ID = "0123abcd.access"
+CF_SECRET = "cf-service-token-secret-for-tests"
+
+
+def access_redirect(_request: httpx.Request) -> httpx.Response:
+    """What Cloudflare Access answers a request without a usable service token."""
+    return httpx.Response(
+        302,
+        headers={
+            "location": "https://example-team.cloudflareaccess.com/cdn-cgi/access/login/"
+            "organizer.example.com?kid=abc&redirect_url=%2Fapi%2Fcalendar"
+        },
+    )
+
+
+@pytest.mark.parametrize("method", ["GET", "POST", "PUT", "PATCH", "DELETE"])
+def test_a_service_token_goes_on_every_request_beside_the_bearer(
+    organizer: FakeOrganizer, method: str
+) -> None:
+    organizer.reply(method, "/api/things/1", {})
+    client = make_client(organizer, cf_access_client_id=CF_ID, cf_access_client_secret=CF_SECRET)
+    if method in ("POST", "PUT", "PATCH"):
+        getattr(client, method.lower())("/api/things/1", {"title": "x"})
+    else:
+        getattr(client, method.lower())("/api/things/1")
+    request = organizer.only(method, "/api/things/1")
+    assert request.headers["cf-access-client-id"] == CF_ID
+    assert request.headers["cf-access-client-secret"] == CF_SECRET
+    assert request.headers["authorization"] == f"Bearer {API_TOKEN}"
+
+
+def test_the_mail_scope_sends_the_service_token_too(organizer: FakeOrganizer) -> None:
+    organizer.reply("GET", "/api/mail/accounts", [])
+    make_client(organizer, cf_access_client_id=CF_ID, cf_access_client_secret=CF_SECRET).get(
+        "/api/mail/accounts", scope="mail"
+    )
+    request = organizer.only("GET", "/api/mail/accounts")
+    assert request.headers["cf-access-client-id"] == CF_ID
+    assert request.headers["authorization"] == f"Bearer {MAIL_TOKEN}"
+
+
+@pytest.mark.parametrize(
+    "access",
+    [{}, {"cf_access_client_id": CF_ID}, {"cf_access_client_secret": CF_SECRET}],
+)
+def test_no_access_headers_without_both_halves(
+    organizer: FakeOrganizer, access: dict[str, str]
+) -> None:
+    organizer.reply("GET", "/api/calendar", [])
+    make_client(organizer, **access).get("/api/calendar")
+    request = organizer.only("GET", "/api/calendar")
+    assert "cf-access-client-id" not in request.headers
+    assert "cf-access-client-secret" not in request.headers
+
+
+def test_an_access_redirect_without_a_service_token_says_what_to_set() -> None:
+    client = OrganizerClient(BASE_URL, transport=httpx.MockTransport(access_redirect), token="t")
+    with pytest.raises(OrganizerError) as info:
+        client.get("/api/calendar")
+    message = str(info.value)
+    assert message.startswith(f"Cloudflare Access stopped GET /api/calendar at {BASE_URL}")
+    assert "set ORGANIZER_CF_ACCESS_CLIENT_ID and ORGANIZER_CF_ACCESS_CLIENT_SECRET" in message
+
+
+def test_an_access_redirect_with_a_service_token_never_shows_the_secret() -> None:
+    client = OrganizerClient(
+        BASE_URL,
+        transport=httpx.MockTransport(access_redirect),
+        token="t",
+        cf_access_client_id=CF_ID,
+        cf_access_client_secret=CF_SECRET,
+    )
+    with pytest.raises(OrganizerError) as info:
+        client.get("/api/calendar")
+    message = str(info.value)
+    assert "Service Auth policy" in message
+    assert CF_SECRET not in message
+    assert CF_ID not in message
+
+
+def test_any_other_redirect_is_an_error_not_an_empty_result() -> None:
+    def moved(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(301, headers={"location": "https://elsewhere.example.com/x?t=1"})
+
+    client = OrganizerClient(BASE_URL, transport=httpx.MockTransport(moved), token="t")
+    with pytest.raises(OrganizerError) as info:
+        client.get("/api/calendar")
+    assert str(info.value).startswith(
+        f"organizer at {BASE_URL} redirected GET /api/calendar (HTTP 301) to "
+        "https://elsewhere.example.com/x;"
+    )
+
+
+def test_service_token_settings_from_environment() -> None:
+    settings = load_settings(
+        {
+            "ORGANIZER_CF_ACCESS_CLIENT_ID": f" {CF_ID} ",
+            "ORGANIZER_CF_ACCESS_CLIENT_SECRET": CF_SECRET,
+        }
+    )
+    assert settings.cf_access_client_id == CF_ID
+    assert settings.cf_access_client_secret == CF_SECRET
+    assert load_settings({}).cf_access_client_id is None
+
+
+@pytest.mark.parametrize(
+    ("env", "missing"),
+    [
+        ({"ORGANIZER_CF_ACCESS_CLIENT_ID": CF_ID}, "ORGANIZER_CF_ACCESS_CLIENT_SECRET"),
+        ({"ORGANIZER_CF_ACCESS_CLIENT_SECRET": CF_SECRET}, "ORGANIZER_CF_ACCESS_CLIENT_ID"),
+    ],
+)
+def test_half_a_service_token_is_refused(env: dict[str, str], missing: str) -> None:
+    with pytest.raises(ConfigError, match=f"^{missing} is not set") as info:
+        load_settings(env)
+    assert CF_SECRET not in str(info.value)
+
+
+def test_settings_repr_hides_the_secrets() -> None:
+    settings = Settings(
+        "http://organizer.test",
+        5,
+        token=API_TOKEN,
+        mail_token=MAIL_TOKEN,
+        cf_access_client_id=CF_ID,
+        cf_access_client_secret=CF_SECRET,
+    )
+    shown = repr(settings)
+    assert CF_SECRET not in shown
+    assert API_TOKEN not in shown
+    assert MAIL_TOKEN not in shown
+
+
+def test_the_shared_client_is_built_with_the_service_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from organizer_mcp import core
+
+    monkeypatch.setenv("ORGANIZER_TOKEN", API_TOKEN)
+    monkeypatch.setenv("ORGANIZER_CF_ACCESS_CLIENT_ID", CF_ID)
+    monkeypatch.setenv("ORGANIZER_CF_ACCESS_CLIENT_SECRET", CF_SECRET)
+    core.use_client(None)
+    try:
+        assert core.client().uses_access_service_token
+    finally:
+        core.client().close()
+        core.use_client(None)
