@@ -125,10 +125,19 @@ def revoke_token(session: Session, token: ApiToken) -> None:
 
 
 class LoginThrottle:
-    """Refuses logins after repeated failures: per client address, and overall.
+    """Slows down password guessing.
+
+    - Per client address: after 5 failures in 15 minutes, that address is refused until the
+      window passes. The address is only as good as the proxy setup (FORWARDED_ALLOW_IPS).
+    - Overall: after 30 failures in an hour from anywhere, every attempt waits a little before
+      its password is checked. It never refuses, so an attacker cannot lock the owner out by
+      failing on purpose; a distributed guesser is held back by the delay and the password's
+      strength.
 
     In memory, so a restart clears it; that is acceptable for one owner and one process.
     """
+
+    OVERALL_DELAY_SECONDS = 2.0
 
     PER_CLIENT = (5, 15 * 60)  # failures, window in seconds
     OVERALL = (30, 60 * 60)
@@ -144,18 +153,23 @@ class LoginThrottle:
             entries.popleft()
 
     def retry_after(self, client: str) -> int | None:
-        """Seconds until a login may be tried again, or None if it may be tried now."""
+        """Seconds until this address may try again, or None if it may try now."""
         now = time.monotonic()
+        limit, window = self.PER_CLIENT
         with self._lock:
-            waits = []
-            for entries, (limit, window) in (
-                (self._by_client.get(client, deque()), self.PER_CLIENT),
-                (self._overall, self.OVERALL),
-            ):
-                self._prune(entries, window, now)
-                if len(entries) >= limit:
-                    waits.append(int(window - (now - entries[0])) + 1)
-            return max(waits) if waits else None
+            entries = self._by_client.get(client, deque())
+            self._prune(entries, window, now)
+            if len(entries) >= limit:
+                return int(window - (now - entries[0])) + 1
+            return None
+
+    def overall_delay(self) -> float:
+        """Seconds every attempt should wait before its password is checked (0 normally)."""
+        now = time.monotonic()
+        limit, window = self.OVERALL
+        with self._lock:
+            self._prune(self._overall, window, now)
+            return self.OVERALL_DELAY_SECONDS if len(self._overall) >= limit else 0.0
 
     def failed(self, client: str) -> None:
         now = time.monotonic()

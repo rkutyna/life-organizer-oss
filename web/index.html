@@ -11,19 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)" />
-    <script>
-      // Apply the theme before first paint to avoid a flash. Mirrors src/app/theme.tsx.
-      (function () {
-        var pref = "system";
-        try {
-          pref = JSON.parse(localStorage.getItem("lo.theme")) || "system";
-        } catch (e) {}
-        var dark =
-          pref === "dark" ||
-          (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        if (dark) document.documentElement.classList.add("dark");
-      })();
-    </script>
+    <!-- Applies the theme before first paint (a file, not inline: the CSP forbids inline scripts). -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

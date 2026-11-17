@@ -50,10 +50,30 @@ VERSION = "0.1.0"
 # Modules whose router needs a scope other than `api`.
 MODULE_SCOPES = {"mail": require_mail}
 
+# Everything the web app loads comes from this server. Inline styles stay allowed (React style
+# attributes); inline scripts do not.
+CONTENT_SECURITY_POLICY = "; ".join(
+    [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self'",
+        "worker-src 'self'",
+        "manifest-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ]
+)
+
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "same-origin",
+    "Content-Security-Policy": CONTENT_SECURITY_POLICY,
 }
 
 
@@ -102,6 +122,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=VERSION,
         lifespan=lifespan,
         generate_unique_id_function=operation_id,
+        docs_url="/docs" if settings.expose_api_docs else None,
+        redoc_url="/redoc" if settings.expose_api_docs else None,
+        openapi_url="/openapi.json" if settings.expose_api_docs else None,
     )
     api.state.settings = settings
     api.state.engine = engine

@@ -7,6 +7,7 @@
 - `POST /sync`: poll every account now instead of waiting for the next run.
 """
 
+import ipaddress
 import logging
 from typing import Literal
 from urllib.parse import urlsplit
@@ -115,9 +116,24 @@ def _server_url(payload: CalDAVConnectIn) -> str:
     parts = urlsplit(url)
     if parts.scheme not in ("https", "http") or not parts.hostname:
         raise HTTPException(400, "Enter the server's full address, starting with https://")
+    if parts.scheme == "http" and not _is_loopback(parts.hostname):
+        raise HTTPException(
+            400,
+            "Use https:// so the password is not sent in clear text "
+            "(http:// is only allowed for a server on this machine)",
+        )
     if parts.username or parts.password:
         raise HTTPException(400, "Put the username and password in their own fields, not the URL")
     return url
+
+
+def _is_loopback(host: str) -> bool:
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 def _login_error(payload: CalDAVConnectIn, url: str, exc: Exception) -> str:

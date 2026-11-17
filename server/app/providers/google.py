@@ -79,7 +79,12 @@ class GoogleAuthError(Exception):
 
 
 class ConsentError(Exception):
-    """The consent flow failed; the message is safe to show the owner."""
+    """The consent flow failed. The message is for the API and logs; `code` is what the
+    Settings page is told after Google's redirect, so that page only ever shows its own words."""
+
+    def __init__(self, message: str, code: str = "failed") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class OAuthState(Base):
@@ -212,11 +217,11 @@ def complete_consent(
     """Finish a consent flow: exchange the code, then create or update the Google account."""
     row = session.get(OAuthState, _hash(state))
     if row is None or row.provider != KIND:
-        raise ConsentError("this sign-in link is unknown or was already used; start again")
+        raise ConsentError("this sign-in link is unknown or was already used; start again", "state")
     session.delete(row)  # single use, whatever happens next
     session.commit()
     if utcnow() - row.created_at > STATE_TTL:
-        raise ConsentError("the sign-in took too long; start again")
+        raise ConsentError("the sign-in took too long; start again", "expired")
 
     with make_client() as client:
         token_response = client.post(
@@ -231,16 +236,18 @@ def complete_consent(
             },
         )
         if token_response.status_code != 200:
-            raise ConsentError(f"Google did not accept the sign-in ({_error_code(token_response)})")
+            raise ConsentError(
+                f"Google did not accept the sign-in ({_error_code(token_response)})", "rejected"
+            )
         tokens = token_response.json()
         info = client.get(
             USERINFO_URL, headers={"Authorization": f"Bearer {tokens['access_token']}"}
         )
         if info.status_code != 200:
-            raise ConsentError("could not read which Google account this is")
+            raise ConsentError("could not read which Google account this is", "identity")
         email = str(info.json().get("email") or "")
     if not email:
-        raise ConsentError("Google did not say which account this is")
+        raise ConsentError("Google did not say which account this is", "identity")
 
     granted = sorted(set(tokens.get("scope", row.scopes).split()))
     creds: dict[str, Any] = {
@@ -262,7 +269,8 @@ def complete_consent(
     if not tokens.get("refresh_token"):
         raise ConsentError(
             "Google sent no refresh token; remove this app's access in your Google account "
-            "settings and try again"
+            "settings and try again",
+            "no_refresh_token",
         )
     creds["refresh_token"] = tokens["refresh_token"]
     return accounts.create(

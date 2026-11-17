@@ -74,19 +74,19 @@ def callback(
     code: str = "",
     error: str = "",
 ) -> RedirectResponse:
-    """Google's redirect. Always answers with a redirect back to Settings."""
+    """Google's redirect. Always answers with a redirect back to Settings, carrying only a fixed
+    result code: anyone can craft a link to this URL, so no text from it reaches the page."""
     if error or not code or not state:
-        reason = "cancelled" if error == "access_denied" else (error or "no code")
-        return _back("error", reason)
+        return _back("cancelled" if error == "access_denied" else "denied")
     try:
-        account = google.complete_consent(session, settings, state, code)
+        google.complete_consent(session, settings, state, code)
     except google.ConsentError as exc:
-        return _back("error", str(exc))
+        return _back(exc.code)
     except Exception:  # noqa: BLE001 - never show a stack trace to a redirect
-        return _back("error", "Google could not be reached; try again")
-    return _back("connected", google.account_email(account))
+        return _back("unreachable")
+    return _back("connected")
 
 
-def _back(result: str, detail: str) -> RedirectResponse:
-    query = urlencode({"google": result, "detail": detail[:200]})
+def _back(result: str) -> RedirectResponse:
+    query = urlencode({"google": result})
     return RedirectResponse(f"{SETTINGS_PAGE}?{query}", status_code=303)

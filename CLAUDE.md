@@ -28,7 +28,7 @@ cd server && uv sync && uv run pytest          # tests (ruff check . && ruff for
 uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8600
 uv run alembic revision --autogenerate --rev-id 00NN -m "..."   # after changing models
 cd web && npm install && npm run dev           # proxies /api to :8600
-npm run typecheck && npm run build && npm run gen:api
+npm run typecheck && npm run build && npm run gen:api   # gen:api: server with EXPOSE_API_DOCS=true
 docker compose up -d --build                   # needs .env (see .env.example)
 scripts/scrub-check.sh [--staged|--history]    # personal-data check
 ```

@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import imaplib
 import re
+import ssl
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
@@ -150,9 +151,16 @@ def _received(meta: bytes) -> datetime | None:
 Connect = Callable[[str, int], Any]
 
 
+def tls_context() -> ssl.SSLContext:
+    """Certificate and host name checked against the system's trust store. imaplib's own
+    default does neither, which would hand the password to anyone who can intercept DNS."""
+    return ssl.create_default_context()
+
+
 def default_connect(host: str, port: int) -> Any:
-    """Implicit TLS only (port 993 by default): the password never crosses the network in clear."""
-    return imaplib.IMAP4_SSL(host, port, timeout=TIMEOUT_SECONDS)
+    """Implicit TLS only (port 993 by default), with the server's certificate verified: the
+    password never crosses the network in clear or to an impostor."""
+    return imaplib.IMAP4_SSL(host, port, ssl_context=tls_context(), timeout=TIMEOUT_SECONDS)
 
 
 class ImapSource:
