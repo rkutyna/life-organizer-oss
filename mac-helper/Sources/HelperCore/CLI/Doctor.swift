@@ -57,6 +57,11 @@ public enum Doctor {
         }
         let resolved = TokenResolver.resolve(config: config, keychain: env.keychain)
         line(resolved.token != nil, "ingest token", resolved.source.description)
+        let access = AccessResolver.resolve(config: config, keychain: env.keychain)
+        switch access.source {
+        case .notConfigured: line(nil, "cloudflare access", access.source.description)
+        default: line(access.credentials != nil, "cloudflare access", access.source.description)
+        }
         line(nil, "streams", "calendar \(config.calendar.enabled ? "on" : "off"), reminders \(config.reminders.enabled ? "on" : "off")"
              + (config.reminders.enabled ? " (apply ops \(config.reminders.apply_ops ? "on" : "off"), polls every \(Int(config.reminders.ops_poll_seconds))s)" : ""))
         line(nil, "host", config.hostName)
@@ -97,14 +102,19 @@ public enum Doctor {
         // rejects the empty body (422), so nothing is written either way.
         if config.serverURL != nil, resolved.token != nil {
             let client = ServerClient(baseURL: config.serverURL, tokens: TokenProvider(fixed: resolved.token),
-                                      transport: env.transport, retryDelays: [])
+                                      transport: env.transport, retryDelays: [],
+                                      access: AccessProvider(fixed: access.credentials))
             do {
                 let (code, _) = try await client.request(method: "POST", path: IngestStream.calendar.path, body: Data("{}".utf8),
                                                          label: "doctor", throwOnHTTPError: false, retry: false)
                 let (ok, detail): (Bool, String)
                 switch code {
                 case 422, 200..<300: (ok, detail) = (true, "reachable, token accepted (HTTP \(code))")
-                case 401, 403: (ok, detail) = (false, "reachable, token REJECTED (HTTP \(code)); make an ingest-scoped token in Settings")
+                case 401, 403:
+                    let hint = access.credentials != nil
+                        ? "; the ingest token, or the Cloudflare Access service token, was refused"
+                        : "; make an ingest-scoped token in Settings (behind Cloudflare Access, also set server.cf_access_client_id)"
+                    (ok, detail) = (false, "reachable, token REJECTED (HTTP \(code))" + hint)
                 case 404: (ok, detail) = (false, "reachable, but /api/ingest/calendar is not there (HTTP 404); check server.url")
                 default: (ok, detail) = (false, "reachable, HTTP \(code)")
                 }

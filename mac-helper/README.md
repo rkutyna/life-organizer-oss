@@ -110,6 +110,26 @@ It is stored as a generic password. The service is the config's `bundle_id` (def
 the token in the config as `server.token`; when that is set, the Keychain is not read. The token is never
 printed or logged.
 
+### Behind Cloudflare Access (optional)
+
+If your organizer is behind Cloudflare Access, the helper needs an Access **service token** to
+get through, besides its ingest token. Docs elsewhere in this repo explain how to create one in
+Cloudflare and which "Service Auth" policy to add. Then:
+
+- set `server.cf_access_client_id` in the config to the token's client id;
+- store its client secret in the Keychain (recommended), or put it in the config as
+  `server.cf_access_client_secret`:
+
+  ```bash
+  organizer-helper set-cf-access-secret     # paste the client secret; it is not shown
+  ```
+
+  It is stored under the same Keychain service as the token, account `cf-access-client-secret`.
+
+When both are set, every request carries `CF-Access-Client-Id` and `CF-Access-Client-Secret`
+alongside `Authorization: Bearer`. `doctor` says whether they are set and where the secret came
+from, never its value. Neither secret is ever logged.
+
 ### 4. Check
 
 ```bash
@@ -196,6 +216,8 @@ example) may ask again or show up as a second entry.
 | `server.token` | `null` | The ingest token; `null` reads it from the Keychain |
 | `server.timeout_seconds` | `30` | Per request |
 | `server.allow_insecure_http` | `false` | Allow plain http to another host (the token travels unencrypted) |
+| `server.cf_access_client_id` | `null` | A Cloudflare Access service token's client id; `null` sends no Access headers |
+| `server.cf_access_client_secret` | `null` | Its client secret; `null` reads it from the Keychain (account `cf-access-client-secret`) |
 | `bundle_id` | `com.lifeorganizerformac.helper` | Default Keychain service and LaunchAgent label (reverse-DNS) |
 | `launch_agent_label` | `null` (= `bundle_id`) | The LaunchAgent's label (reverse-DNS) |
 | `keychain.service` / `keychain.account` | `null` (= `bundle_id`) / `ingest-token` | Where `set-token` stores the token |
@@ -217,6 +239,9 @@ example) may ask again or show up as a second entry.
 
 - **`doctor` says the token was rejected (401/403).** The token was revoked, mistyped, or lacks the `ingest`
   scope. Create a new one and run `set-token` again. The background helper picks it up on its next request.
+- **`doctor` says the token was rejected, and the organizer is behind Cloudflare Access.** Cloudflare
+  refused the request before it reached the organizer. Set `server.cf_access_client_id` and the secret
+  (above), and check that the Access application has a "Service Auth" policy for that service token.
 - **"server.url is not configured".** Set `server.url` to an `https://` address (or `http://` to this Mac).
 - **"server.url uses plain http to another host".** Use https. On a network you trust you can set
   `server.allow_insecure_http` to `true` instead.

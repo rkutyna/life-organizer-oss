@@ -3,7 +3,9 @@
     "url": "https://organizer.example.com",
     "token": null,
     "timeout_seconds": 30,
-    "allow_insecure_http": false
+    "allow_insecure_http": false,
+    "cf_access_client_id": null,
+    "cf_access_client_secret": null
   },
   "bundle_id": "com.lifeorganizerformac.helper",
   "launch_agent_label": null,
