@@ -1,0 +1,5 @@
+.build/
+OrganizerKit/.build/
+OrganizerKit/.swiftpm/
+xcuserdata/
+*.xcuserstate

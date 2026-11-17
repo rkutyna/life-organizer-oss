@@ -1,0 +1,711 @@
+{
+  "generated_by": "apple/scripts/quickadd-golden.mjs",
+  "chrono": "2.10.1",
+  "time_zone": "America/New_York",
+  "cases": [
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Call the plumber tomorrow 3pm !1",
+      "expected": {
+        "title": "Call the plumber",
+        "due_date": "2026-10-24",
+        "due_time": "15:00",
+        "priority": 1,
+        "date_text": "tomorrow 3pm"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Buy milk",
+      "expected": {
+        "title": "Buy milk",
+        "due_date": null,
+        "due_time": null,
+        "priority": null,
+        "date_text": null
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Buy milk !2",
+      "expected": {
+        "title": "Buy milk",
+        "due_date": null,
+        "due_time": null,
+        "priority": 2,
+        "date_text": null
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "!3 Water plants",
+      "expected": {
+        "title": "Water plants",
+        "due_date": null,
+        "due_time": null,
+        "priority": 3,
+        "date_text": null
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Read book !1 tomorrow",
+      "expected": {
+        "title": "Read book",
+        "due_date": "2026-10-24",
+        "due_time": null,
+        "priority": 1,
+        "date_text": "tomorrow"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "!4 is not a priority",
+      "expected": {
+        "title": "!4 is not a priority",
+        "due_date": null,
+        "due_time": null,
+        "priority": null,
+        "date_text": null
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "price went up!1",
+      "expected": {
+        "title": "price went up!1",
+        "due_date": null,
+        "due_time": null,
+        "priority": null,
+        "date_text": null
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pay rent on friday",
+      "expected": {
+        "title": "Pay rent",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "on friday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pay rent friday",
+      "expected": {
+        "title": "Pay rent",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "friday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pay rent this friday",
+      "expected": {
+        "title": "Pay rent",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "this friday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pay rent next friday",
+      "expected": {
+        "title": "Pay rent",
+        "due_date": "2026-10-30",
+        "due_time": null,
+        "priority": null,
+        "date_text": "next friday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Haircut sat 11am",
+      "expected": {
+        "title": "Haircut",
+        "due_date": "2026-10-24",
+        "due_time": "11:00",
+        "priority": null,
+        "date_text": "sat 11am"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Call bank on mon",
+      "expected": {
+        "title": "Call bank",
+        "due_date": "2026-10-26",
+        "due_time": null,
+        "priority": null,
+        "date_text": "on mon"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Monday standup",
+      "expected": {
+        "title": "standup",
+        "due_date": "2026-10-26",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Monday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Dentist next tuesday at 10am",
+      "expected": {
+        "title": "Dentist",
+        "due_date": "2026-10-27",
+        "due_time": "10:00",
+        "priority": null,
+        "date_text": "next tuesday at 10am"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Submit report by monday",
+      "expected": {
+        "title": "Submit report",
+        "due_date": "2026-10-26",
+        "due_time": null,
+        "priority": null,
+        "date_text": "monday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Team lunch today at noon",
+      "expected": {
+        "title": "Team lunch",
+        "due_date": "2026-10-23",
+        "due_time": "12:00",
+        "priority": null,
+        "date_text": "today at noon"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Team lunch today",
+      "expected": {
+        "title": "Team lunch",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "today"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Call mom tonight",
+      "expected": {
+        "title": "Call mom",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "tonight"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Water the plants tomorrow morning",
+      "expected": {
+        "title": "Water the plants",
+        "due_date": "2026-10-24",
+        "due_time": null,
+        "priority": null,
+        "date_text": "tomorrow morning"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Email Sam this afternoon",
+      "expected": {
+        "title": "Email Sam",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "this afternoon"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Gym this evening",
+      "expected": {
+        "title": "Gym",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "this evening"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Garbage out sunday night",
+      "expected": {
+        "title": "Garbage out",
+        "due_date": "2026-10-25",
+        "due_time": null,
+        "priority": null,
+        "date_text": "sunday night"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "tomorrow",
+      "expected": {
+        "title": "tomorrow",
+        "due_date": "2026-10-24",
+        "due_time": null,
+        "priority": null,
+        "date_text": "tomorrow"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Due friday",
+      "expected": {
+        "title": "Due",
+        "due_date": "2026-10-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "friday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Workshop the day after tomorrow",
+      "expected": {
+        "title": "Workshop",
+        "due_date": "2026-10-25",
+        "due_time": null,
+        "priority": null,
+        "date_text": "the day after tomorrow"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Renew passport in 2 weeks",
+      "expected": {
+        "title": "Renew passport",
+        "due_date": "2026-11-06",
+        "due_time": null,
+        "priority": null,
+        "date_text": "in 2 weeks"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Check oil in 3 days",
+      "expected": {
+        "title": "Check oil",
+        "due_date": "2026-10-26",
+        "due_time": null,
+        "priority": null,
+        "date_text": "in 3 days"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Plan trip in 1 month",
+      "expected": {
+        "title": "Plan trip",
+        "due_date": "2026-11-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "in 1 month"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Call back in 2 hours",
+      "expected": {
+        "title": "Call back",
+        "due_date": "2026-10-23",
+        "due_time": "12:30",
+        "priority": null,
+        "date_text": "in 2 hours"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Stretch in 30 minutes",
+      "expected": {
+        "title": "Stretch",
+        "due_date": "2026-10-23",
+        "due_time": "11:00",
+        "priority": null,
+        "date_text": "in 30 minutes"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Book flights next week",
+      "expected": {
+        "title": "Book flights",
+        "due_date": "2026-10-30",
+        "due_time": null,
+        "priority": null,
+        "date_text": "next week"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Taxes next month",
+      "expected": {
+        "title": "Taxes",
+        "due_date": "2026-11-23",
+        "due_time": null,
+        "priority": null,
+        "date_text": "next month"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Meeting oct 30 2pm",
+      "expected": {
+        "title": "Meeting",
+        "due_date": "2026-10-30",
+        "due_time": "14:00",
+        "priority": null,
+        "date_text": "oct 30 2pm"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Birthday party Nov 2",
+      "expected": {
+        "title": "Birthday party",
+        "due_date": "2026-11-02",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Nov 2"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Halloween costume October 31",
+      "expected": {
+        "title": "Halloween costume",
+        "due_date": "2026-10-31",
+        "due_time": null,
+        "priority": null,
+        "date_text": "October 31"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Return library books 24 oct",
+      "expected": {
+        "title": "Return library books",
+        "due_date": "2026-10-24",
+        "due_time": null,
+        "priority": null,
+        "date_text": "24 oct"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Doctor appointment Jan 5",
+      "expected": {
+        "title": "Doctor appointment",
+        "due_date": "2027-01-05",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Jan 5"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pay deposit Oct 1",
+      "expected": {
+        "title": "Pay deposit",
+        "due_date": "2027-10-01",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Oct 1"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Interview prep 10/28 at 3:30pm",
+      "expected": {
+        "title": "Interview prep",
+        "due_date": "2026-10-28",
+        "due_time": "15:30",
+        "priority": null,
+        "date_text": "10/28 at 3:30pm"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Concert 12/5",
+      "expected": {
+        "title": "Concert",
+        "due_date": "2026-12-05",
+        "due_time": null,
+        "priority": null,
+        "date_text": "12/5"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Vacation 2026-12-20",
+      "expected": {
+        "title": "Vacation",
+        "due_date": "2026-12-20",
+        "due_time": null,
+        "priority": null,
+        "date_text": "2026-12-20"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pick up dry cleaning 5pm",
+      "expected": {
+        "title": "Pick up dry cleaning",
+        "due_date": "2026-10-23",
+        "due_time": "17:00",
+        "priority": null,
+        "date_text": "5pm"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Fix bike 8 pm",
+      "expected": {
+        "title": "Fix bike",
+        "due_date": "2026-10-23",
+        "due_time": "20:00",
+        "priority": null,
+        "date_text": "8 pm"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Morning run 6am",
+      "expected": {
+        "title": "run 6am",
+        "due_date": "2026-10-24",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Morning"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Standup at 9:30",
+      "expected": {
+        "title": "Standup",
+        "due_date": "2026-10-24",
+        "due_time": "09:30",
+        "priority": null,
+        "date_text": "at 9:30"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Review PR 14:00",
+      "expected": {
+        "title": "Review PR",
+        "due_date": "2026-10-23",
+        "due_time": "14:00",
+        "priority": null,
+        "date_text": "14:00"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Lunch at 1",
+      "expected": {
+        "title": "Lunch",
+        "due_date": "2026-10-24",
+        "due_time": "01:00",
+        "priority": null,
+        "date_text": "at 1"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Call at 3pm tomorrow",
+      "expected": {
+        "title": "Call",
+        "due_date": "2026-10-24",
+        "due_time": "15:00",
+        "priority": null,
+        "date_text": "at 3pm tomorrow"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "next friday dinner",
+      "expected": {
+        "title": "dinner",
+        "due_date": "2026-10-30",
+        "due_time": null,
+        "priority": null,
+        "date_text": "next friday"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Wedding june 14",
+      "expected": {
+        "title": "Wedding",
+        "due_date": "2027-06-14",
+        "due_time": null,
+        "priority": null,
+        "date_text": "june 14"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Leave at midnight",
+      "expected": {
+        "title": "Leave",
+        "due_date": "2026-10-24",
+        "due_time": "00:00",
+        "priority": null,
+        "date_text": "midnight"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Pay invoice by 12/1 !2",
+      "expected": {
+        "title": "Pay invoice",
+        "due_date": "2026-12-01",
+        "due_time": null,
+        "priority": 2,
+        "date_text": "12/1"
+      }
+    },
+    {
+      "now": "2026-10-23T10:30",
+      "input": "Prep slides wed 4:15pm !1",
+      "expected": {
+        "title": "Prep slides",
+        "due_date": "2026-10-28",
+        "due_time": "16:15",
+        "priority": 1,
+        "date_text": "wed 4:15pm"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Doctor appointment Jan 5",
+      "expected": {
+        "title": "Doctor appointment",
+        "due_date": "2027-01-05",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Jan 5"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Pay rent friday",
+      "expected": {
+        "title": "Pay rent",
+        "due_date": "2027-01-01",
+        "due_time": null,
+        "priority": null,
+        "date_text": "friday"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Pay rent monday",
+      "expected": {
+        "title": "Pay rent",
+        "due_date": "2026-12-28",
+        "due_time": null,
+        "priority": null,
+        "date_text": "monday"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Night shift 9pm",
+      "expected": {
+        "title": "shift 9pm",
+        "due_date": "2026-12-28",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Night"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Wake up 7am",
+      "expected": {
+        "title": "Wake up",
+        "due_date": "2026-12-28",
+        "due_time": "07:00",
+        "priority": null,
+        "date_text": "7am"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Plan year next month",
+      "expected": {
+        "title": "Plan year",
+        "due_date": "2027-01-27",
+        "due_time": null,
+        "priority": null,
+        "date_text": "next month"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Party new year's eve",
+      "expected": {
+        "title": "Party new year's eve",
+        "due_date": null,
+        "due_time": null,
+        "priority": null,
+        "date_text": null
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Review goals Dec 31",
+      "expected": {
+        "title": "Review goals",
+        "due_date": "2026-12-31",
+        "due_time": null,
+        "priority": null,
+        "date_text": "Dec 31"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Groceries tomorrow",
+      "expected": {
+        "title": "Groceries",
+        "due_date": "2026-12-28",
+        "due_time": null,
+        "priority": null,
+        "date_text": "tomorrow"
+      }
+    },
+    {
+      "now": "2026-12-27T21:00",
+      "input": "Check in 12/26",
+      "expected": {
+        "title": "Check in",
+        "due_date": "2027-12-26",
+        "due_time": null,
+        "priority": null,
+        "date_text": "12/26"
+      }
+    }
+  ]
+}
