@@ -12,7 +12,33 @@ from support import FakeOrganizer
 
 from organizer_mcp import server, toolsets
 
-EXPECTED_TOOLS = ["calendar", "calendar_sources", "emails", "email"]
+CALENDAR_TOOLS = ["calendar", "calendar_sources"]
+MAIL_TOOLS = ["emails", "email"]
+JOBS_TOOLS = [
+    "applications",
+    "leads",
+    "companies",
+    "contacts",
+    "interviews",
+    "job_events",
+    "pipeline",
+    "job_statuses",
+    "weekly_goals",
+    "add_application",
+    "set_application_status",
+    "add_lead",
+    "mark_applied",
+    "drop_lead",
+    "update_company",
+    "add_contact",
+    "update_contact",
+    "add_interview",
+    "update_interview",
+    "add_job_event",
+    "update_job_event",
+    "set_weekly_goal",
+]
+EXPECTED_TOOLS = CALENDAR_TOOLS + MAIL_TOOLS + JOBS_TOOLS
 
 
 def listed() -> dict[str, Any]:
@@ -24,7 +50,7 @@ def test_all_tools_are_registered_in_order_and_described() -> None:
     assert list(tools) == EXPECTED_TOOLS
     for name, tool in tools.items():
         assert tool.description and len(tool.description) > 60, name
-        assert tool.annotations.readOnlyHint is True, name
+        assert tool.annotations.readOnlyHint is (name not in toolsets.WRITE_TOOLS), name
 
 
 def test_instructions_name_no_one() -> None:
@@ -45,8 +71,9 @@ def test_serve_only_removes_the_tools_left_out(monkeypatch: pytest.MonkeyPatch) 
 
     assert server.serve_only(toolsets.choose(None, False)) == ["emails", "email"]
     assert removed == ["emails", "email"]
-    assert server.serve_only(toolsets.choose("mail", False)) == ["calendar", "calendar_sources"]
-    assert server.serve_only(toolsets.choose("all,mail", False)) == []
+    assert server.serve_only(toolsets.choose("mail", False)) == CALENDAR_TOOLS + JOBS_TOOLS
+    assert server.serve_only(toolsets.choose("calendar,mail", False)) == JOBS_TOOLS
+    assert server.serve_only(toolsets.choose("all,mail", True)) == []
 
 
 @pytest.fixture

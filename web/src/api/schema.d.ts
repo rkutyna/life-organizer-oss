@@ -497,6 +497,603 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Preview
+         * @description Read the file: headers, the first rows, a suggested (or the given) mapping and the status
+         *     column's distinct values with suggested statuses. Writes nothing.
+         */
+        post: operations["jobs_import_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/import/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Dry Run
+         * @description What a commit would do: counts, matched records and problems. Writes nothing.
+         */
+        post: operations["jobs_import_dry_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/import/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Commit
+         * @description Import: every write as author `system`, in one audit batch (`batch_id`).
+         */
+        post: operations["jobs_import_commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/import/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Undo
+         * @description Revert an import's batch. Changes edited since are left alone and counted.
+         */
+        post: operations["jobs_import_undo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Statuses
+         * @description The status list in order. Defaults apply until it is edited.
+         */
+        get: operations["jobs_list_statuses"];
+        put?: never;
+        /**
+         * Add Status Definition
+         * @description Add an active or closed status, after the last of its kind.
+         */
+        post: operations["jobs_add_status_definition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/statuses/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder Statuses
+         * @description Reorder the list. Active statuses' order is the funnel's stage order.
+         */
+        put: operations["jobs_reorder_statuses"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/statuses/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Status Definition
+         * @description Remove a status no application's history uses. lead, applied and dropped stay.
+         */
+        delete: operations["jobs_remove_status_definition"];
+        options?: never;
+        head?: never;
+        /** Update Status Definition */
+        patch: operations["jobs_update_status_definition"];
+        trace?: never;
+    };
+    "/api/jobs/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Companies
+         * @description Companies by name, with their application, lead and contact counts.
+         */
+        get: operations["jobs_list_companies"];
+        put?: never;
+        /**
+         * Create Company
+         * @description Names are unique ignoring case and spacing: a taken name is refused (409), or with
+         *     reuse_existing the existing company comes back with created=false.
+         */
+        post: operations["jobs_create_company"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/companies/{company_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Company */
+        get: operations["jobs_get_company"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Company
+         * @description Soft delete. Refused while the company still has applications or contacts.
+         */
+        delete: operations["jobs_delete_company"];
+        options?: never;
+        head?: never;
+        /** Update Company */
+        patch: operations["jobs_update_company"];
+        trace?: never;
+    };
+    "/api/jobs/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Applications
+         * @description Applications, newest applied first by default; undated ones last. /pipeline counts the
+         *     same rows for the same filters.
+         */
+        get: operations["jobs_list_applications"];
+        put?: never;
+        /**
+         * Create Application
+         * @description Creates the application and its first status event in one batch.
+         *
+         *     A lead is a stage of an application, so an application entered for an open lead becomes that
+         *     lead: when exactly one open lead at the company has the same title (ignoring case, spacing and
+         *     punctuation), it is submitted in place with the fields sent and `promoted_from_lead` is true.
+         *     When several match, none is guessed: a new record is created and `lead_candidates` lists them.
+         *     The company may be named instead of given by id; a new name creates it.
+         */
+        post: operations["jobs_create_application"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Application */
+        get: operations["jobs_get_application"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Application
+         * @description Soft delete, with its status events and interviews, in one batch.
+         */
+        delete: operations["jobs_delete_application"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Application
+         * @description Change only the fields sent. The status changes through /status, /apply and /drop.
+         */
+        patch: operations["jobs_update_application"];
+        trace?: never;
+    };
+    "/api/jobs/applications/{application_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Status Events
+         * @description The dated status history, oldest first.
+         */
+        get: operations["jobs_list_status_events"];
+        put?: never;
+        /**
+         * Add Status Event
+         * @description Append a dated status event; the status follows the latest event. An event dated before
+         *     the latest one is recorded but leaves the status alone. Giving an open lead an active or
+         *     closed status submits it first (as /apply).
+         */
+        post: operations["jobs_add_status_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/applications/{application_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply To Lead
+         * @description Submit an open lead: sets date_applied and appends an `applied` event, in one batch. The
+         *     day cannot be before the day the lead was found.
+         */
+        post: operations["jobs_apply_to_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/applications/{application_id}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Drop Lead
+         * @description Cut an open lead without applying: status `dropped`, dated today. The reason goes in the
+         *     status event and is appended to the notes.
+         */
+        post: operations["jobs_drop_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/status-events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Status Event
+         * @description Soft delete. An application keeps at least one status event.
+         */
+        delete: operations["jobs_delete_status_event"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Status Event
+         * @description Fix a status event's date, status or note. Lead events keep their status.
+         */
+        patch: operations["jobs_update_status_event"];
+        trace?: never;
+    };
+    "/api/jobs/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Leads
+         * @description Open leads, newest logged first.
+         */
+        get: operations["jobs_list_leads"];
+        put?: never;
+        /**
+         * Create Lead
+         * @description Log a posting worth applying to: status `lead`, no date_applied, its history starting on
+         *     found_on (default today), in one batch.
+         *
+         *     Refused with 409, naming the record, when the company already has a lead or application with
+         *     the same title (ignoring case, spacing and punctuation; dropped leads do not count). `force`
+         *     logs it anyway, for a reposting.
+         */
+        post: operations["jobs_create_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Contacts
+         * @description Contacts by name.
+         */
+        get: operations["jobs_list_contacts"];
+        put?: never;
+        /**
+         * Create Contact
+         * @description A contact may belong to a company (by id or name; a new name creates it) or to none.
+         */
+        post: operations["jobs_create_contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/contacts/{contact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Contact */
+        get: operations["jobs_get_contact"];
+        put?: never;
+        post?: never;
+        /** Delete Contact */
+        delete: operations["jobs_delete_contact"];
+        options?: never;
+        head?: never;
+        /** Update Contact */
+        patch: operations["jobs_update_contact"];
+        trace?: never;
+    };
+    "/api/jobs/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Interviews
+         * @description Interviews by day and time; unscheduled ones (no day) last.
+         */
+        get: operations["jobs_list_interviews"];
+        put?: never;
+        /**
+         * Create Interview
+         * @description Record an interview. It shows on the calendar once it has a day. It does not change the
+         *     application's status (POST /applications/{id}/status does).
+         */
+        post: operations["jobs_create_interview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/interviews/{interview_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Interview */
+        get: operations["jobs_get_interview"];
+        put?: never;
+        post?: never;
+        /** Delete Interview */
+        delete: operations["jobs_delete_interview"];
+        options?: never;
+        head?: never;
+        /** Update Interview */
+        patch: operations["jobs_update_interview"];
+        trace?: never;
+    };
+    "/api/jobs/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Events
+         * @description Job events by day and time.
+         */
+        get: operations["jobs_list_events"];
+        put?: never;
+        /** Create Event */
+        post: operations["jobs_create_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Event */
+        get: operations["jobs_get_event"];
+        put?: never;
+        post?: never;
+        /** Delete Event */
+        delete: operations["jobs_delete_event"];
+        options?: never;
+        head?: never;
+        /** Update Event */
+        patch: operations["jobs_update_event"];
+        trace?: never;
+    };
+    "/api/jobs/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Goals */
+        get: operations["jobs_list_goals"];
+        put?: never;
+        /**
+         * Create Goal
+         * @description One goal per metric; a second for the same metric is refused (change its target).
+         */
+        post: operations["jobs_create_goal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/goals/{goal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Goal */
+        delete: operations["jobs_delete_goal"];
+        options?: never;
+        head?: never;
+        /** Update Goal */
+        patch: operations["jobs_update_goal"];
+        trace?: never;
+    };
+    "/api/jobs/goals/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Goal Progress
+         * @description Each goal's count for the week (Monday to Sunday) against its target.
+         */
+        get: operations["jobs_goal_progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/pipeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pipeline
+         * @description Counts by current status, how far applications got (`reached`), leads apart, and
+         *     interviews. Counts, never rates. Takes the applications list's filters.
+         */
+        get: operations["jobs_get_pipeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tags
+         * @description Every tag in use on companies, applications, contacts and events, for filters.
+         */
+        get: operations["jobs_list_tags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mail/accounts": {
         parameters: {
             query?: never;
@@ -712,6 +1309,219 @@ export interface components {
              */
             holiday_country?: string | null;
         };
+        /** ApplicationCreate */
+        ApplicationCreate: {
+            /**
+             * Company Id
+             * @description An existing company
+             */
+            company_id?: number | null;
+            /**
+             * Company
+             * @description A company name, matched ignoring case and spacing and created if new; used when company_id is left out
+             */
+            company?: string | null;
+            /**
+             * Location
+             * @default
+             */
+            location?: string;
+            /**
+             * Posting Url
+             * @default
+             */
+            posting_url?: string;
+            /**
+             * Source
+             * @description Where the posting was found
+             * @default
+             */
+            source?: string;
+            /**
+             * Next Action
+             * @default
+             */
+            next_action?: string;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /**
+             * Tags
+             * @description Free-form labels, e.g. remote or referral
+             */
+            tags?: string[];
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @description An active or closed status; applied
+             */
+            status?: string | null;
+            /**
+             * Date Applied
+             * @description Defaults to today
+             */
+            date_applied?: string | null;
+        };
+        /** ApplicationCreatedOut */
+        ApplicationCreatedOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Company Id */
+            company_id: number;
+            /**
+             * Company
+             * @description The company's name
+             */
+            company: string;
+            /** Title */
+            title: string;
+            /** Status */
+            status: string;
+            /** Date Applied */
+            date_applied: string | null;
+            /** Location */
+            location: string;
+            /** Posting Url */
+            posting_url: string;
+            /** Source */
+            source: string;
+            /** Next Action */
+            next_action: string;
+            /** Next Action Due */
+            next_action_due: string | null;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+            /** Extra */
+            extra: {
+                [key: string]: string;
+            };
+            /**
+             * Reached
+             * @description The furthest active stage in its history (None for a lead)
+             */
+            reached: string | null;
+            /**
+             * Found On
+             * @description The day it was logged as a lead, if it was one
+             */
+            found_on: string | null;
+            /**
+             * Company Created
+             * @default false
+             */
+            company_created?: boolean;
+            /**
+             * Promoted From Lead
+             * @description An open lead with the same title became this application
+             * @default false
+             */
+            promoted_from_lead?: boolean;
+            /**
+             * Lead Candidates
+             * @description Several open leads matched, so none was chosen; their ids
+             */
+            lead_candidates?: number[];
+        };
+        /** ApplicationOut */
+        ApplicationOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Company Id */
+            company_id: number;
+            /**
+             * Company
+             * @description The company's name
+             */
+            company: string;
+            /** Title */
+            title: string;
+            /** Status */
+            status: string;
+            /** Date Applied */
+            date_applied: string | null;
+            /** Location */
+            location: string;
+            /** Posting Url */
+            posting_url: string;
+            /** Source */
+            source: string;
+            /** Next Action */
+            next_action: string;
+            /** Next Action Due */
+            next_action_due: string | null;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+            /** Extra */
+            extra: {
+                [key: string]: string;
+            };
+            /**
+             * Reached
+             * @description The furthest active stage in its history (None for a lead)
+             */
+            reached: string | null;
+            /**
+             * Found On
+             * @description The day it was logged as a lead, if it was one
+             */
+            found_on: string | null;
+        };
+        /** ApplicationUpdate */
+        ApplicationUpdate: {
+            /** Company Id */
+            company_id?: number | null;
+            /** Title */
+            title?: string | null;
+            /** Date Applied */
+            date_applied?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Posting Url */
+            posting_url?: string | null;
+            /** Source */
+            source?: string | null;
+            /** Next Action */
+            next_action?: string | null;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+        };
         /** AuthState */
         AuthState: {
             /** Setup Required */
@@ -926,6 +1736,311 @@ export interface components {
             /** Reverts Change Id */
             reverts_change_id: number | null;
         };
+        /** CompanyCreate */
+        CompanyCreate: {
+            /**
+             * Website
+             * @default
+             */
+            website?: string;
+            /**
+             * Target
+             * @default false
+             */
+            target?: boolean;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /**
+             * Tags
+             * @description Free-form labels, e.g. remote or referral
+             */
+            tags?: string[];
+            /** Name */
+            name: string;
+            /**
+             * Reuse Existing
+             * @description When the name is taken (ignoring case and spacing), return that company instead of refusing
+             * @default false
+             */
+            reuse_existing?: boolean;
+        };
+        /** CompanyCreatedOut */
+        CompanyCreatedOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Website */
+            website: string;
+            /** Target */
+            target: boolean;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+            /**
+             * Created
+             * @description False when reuse_existing returned an existing company
+             */
+            created: boolean;
+        };
+        /** CompanyOut */
+        CompanyOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Website */
+            website: string;
+            /** Target */
+            target: boolean;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+        };
+        /** CompanyRowOut */
+        CompanyRowOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Website */
+            website: string;
+            /** Target */
+            target: boolean;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+            /**
+             * Applications
+             * @description Submitted applications (leads not counted)
+             */
+            applications: number;
+            /**
+             * Leads
+             * @description Open leads
+             */
+            leads: number;
+            /** Contacts */
+            contacts: number;
+        };
+        /** CompanyUpdate */
+        CompanyUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Website */
+            website?: string | null;
+            /** Target */
+            target?: boolean | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+        };
+        /** ContactCreate */
+        ContactCreate: {
+            /**
+             * Company Id
+             * @description An existing company
+             */
+            company_id?: number | null;
+            /**
+             * Company
+             * @description A company name, matched ignoring case and spacing and created if new; used when company_id is left out
+             */
+            company?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @default
+             */
+            role?: string;
+            /**
+             * Email
+             * @default
+             */
+            email?: string;
+            /**
+             * Profile Url
+             * @default
+             */
+            profile_url?: string;
+            /** Contacted On */
+            contacted_on?: string | null;
+            /** Replied On */
+            replied_on?: string | null;
+            /**
+             * Next Action
+             * @default
+             */
+            next_action?: string;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /**
+             * Tags
+             * @description Free-form labels, e.g. remote or referral
+             */
+            tags?: string[];
+        };
+        /** ContactCreatedOut */
+        ContactCreatedOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Company Id */
+            company_id: number | null;
+            /** Company */
+            company: string | null;
+            /** Role */
+            role: string;
+            /** Email */
+            email: string;
+            /** Profile Url */
+            profile_url: string;
+            /** Contacted On */
+            contacted_on: string | null;
+            /** Replied On */
+            replied_on: string | null;
+            /** Next Action */
+            next_action: string;
+            /** Next Action Due */
+            next_action_due: string | null;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+            /**
+             * Company Created
+             * @default false
+             */
+            company_created?: boolean;
+        };
+        /** ContactOut */
+        ContactOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Company Id */
+            company_id: number | null;
+            /** Company */
+            company: string | null;
+            /** Role */
+            role: string;
+            /** Email */
+            email: string;
+            /** Profile Url */
+            profile_url: string;
+            /** Contacted On */
+            contacted_on: string | null;
+            /** Replied On */
+            replied_on: string | null;
+            /** Next Action */
+            next_action: string;
+            /** Next Action Due */
+            next_action_due: string | null;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+        };
+        /** ContactUpdate */
+        ContactUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Company Id */
+            company_id?: number | null;
+            /** Role */
+            role?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Profile Url */
+            profile_url?: string | null;
+            /** Contacted On */
+            contacted_on?: string | null;
+            /** Replied On */
+            replied_on?: string | null;
+            /** Next Action */
+            next_action?: string | null;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+        };
         /** EventKitCalendarIn */
         EventKitCalendarIn: {
             /**
@@ -989,6 +2104,22 @@ export interface components {
              */
             status?: string;
         };
+        /** GoalProgressOut */
+        GoalProgressOut: {
+            /** Id */
+            id: number;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "applications" | "outreach" | "leads" | "interviews" | "events";
+            /** Label */
+            label: string;
+            /** Target */
+            target: number;
+            /** Actual */
+            actual: number;
+        };
         /** GoogleStart */
         GoogleStart: {
             /** Features */
@@ -1028,6 +2159,554 @@ export interface components {
             code: string;
             /** Name */
             name: string;
+        };
+        /** InterviewCreate */
+        InterviewCreate: {
+            /** Application Id */
+            application_id: number;
+            /**
+             * Stage
+             * @default
+             */
+            stage?: string;
+            /** On Date */
+            on_date?: string | null;
+            /**
+             * Start Time
+             * @description Local wall-clock time
+             */
+            start_time?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /**
+             * Location
+             * @default
+             */
+            location?: string;
+            /**
+             * Interviewer
+             * @default
+             */
+            interviewer?: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+        };
+        /** InterviewOut */
+        InterviewOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Application Id */
+            application_id: number;
+            /** Company Id */
+            company_id: number;
+            /** Company */
+            company: string;
+            /** Application Title */
+            application_title: string;
+            /** Stage */
+            stage: string;
+            /** On Date */
+            on_date: string | null;
+            /** Start Time */
+            start_time: string | null;
+            /** Duration Minutes */
+            duration_minutes: number | null;
+            /** Location */
+            location: string;
+            /** Interviewer */
+            interviewer: string;
+            /** Notes */
+            notes: string;
+        };
+        /** InterviewUpdate */
+        InterviewUpdate: {
+            /** Application Id */
+            application_id?: number | null;
+            /** Stage */
+            stage?: string | null;
+            /** On Date */
+            on_date?: string | null;
+            /** Start Time */
+            start_time?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Location */
+            location?: string | null;
+            /** Interviewer */
+            interviewer?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** JobApplyIn */
+        JobApplyIn: {
+            /**
+             * On Date
+             * @description Defaults to today
+             */
+            on_date?: string | null;
+            /**
+             * Status
+             * @description A status past applied, if any
+             */
+            status?: string | null;
+        };
+        /** JobDropIn */
+        JobDropIn: {
+            /** Reason */
+            reason: string;
+        };
+        /** JobEventCreate */
+        JobEventCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @description fair, networking, info session
+             * @default
+             */
+            kind?: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Start Time */
+            start_time?: string | null;
+            /** End Time */
+            end_time?: string | null;
+            /**
+             * Location
+             * @default
+             */
+            location?: string;
+            /**
+             * Url
+             * @default
+             */
+            url?: string;
+            /** Attended */
+            attended?: boolean | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /**
+             * Tags
+             * @description Free-form labels, e.g. remote or referral
+             */
+            tags?: string[];
+        };
+        /** JobEventOut */
+        JobEventOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Start Time */
+            start_time: string | null;
+            /** End Time */
+            end_time: string | null;
+            /** Location */
+            location: string;
+            /** Url */
+            url: string;
+            /** Attended */
+            attended: boolean | null;
+            /** Notes */
+            notes: string;
+            /** Tags */
+            tags: string[];
+        };
+        /** JobEventUpdate */
+        JobEventUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** On Date */
+            on_date?: string | null;
+            /** Start Time */
+            start_time?: string | null;
+            /** End Time */
+            end_time?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Attended */
+            attended?: boolean | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+        };
+        /** JobStatusChange */
+        JobStatusChange: {
+            /** Status */
+            status: string;
+            /**
+             * On Date
+             * @description Defaults to today
+             */
+            on_date?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note?: string;
+        };
+        /** JobStatusCreate */
+        JobStatusCreate: {
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "active" | "closed";
+            /**
+             * Key
+             * @description Lowercase id; made from the label when left out
+             */
+            key?: string | null;
+        };
+        /** JobStatusOrder */
+        JobStatusOrder: {
+            /** Keys */
+            keys: string[];
+        };
+        /** JobStatusOut */
+        JobStatusOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "lead" | "dropped" | "active" | "closed";
+            /** Position */
+            position: number;
+            /**
+             * Reserved
+             * @description lead, applied and dropped: renamable, never removed
+             */
+            reserved: boolean;
+        };
+        /** JobStatusUpdate */
+        JobStatusUpdate: {
+            /** Label */
+            label?: string | null;
+            /** Kind */
+            kind?: ("active" | "closed") | null;
+        };
+        /** JobTagsOut */
+        JobTagsOut: {
+            /** Tags */
+            tags: string[];
+        };
+        /** JobsImportMatch */
+        JobsImportMatch: {
+            /** Row */
+            row: number;
+            /** Record Id */
+            record_id: number;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "update" | "unchanged" | "promote";
+        };
+        /** JobsImportPreviewIn */
+        JobsImportPreviewIn: {
+            /**
+             * Csv
+             * @description The CSV file's text (UTF-8)
+             */
+            csv: string;
+            /**
+             * Kind
+             * @default applications
+             * @enum {string}
+             */
+            kind?: "applications" | "contacts";
+            /**
+             * Mapping
+             * @description Header -> field; leave out for a suggested mapping
+             */
+            mapping?: {
+                [key: string]: string | null;
+            } | null;
+        };
+        /** JobsImportPreviewOut */
+        JobsImportPreviewOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "applications" | "contacts";
+            /** Headers */
+            headers: string[];
+            /**
+             * Rows
+             * @description The first rows, for the person importing only
+             */
+            rows: string[][];
+            /** Row Count */
+            row_count: number;
+            /** Mapping */
+            mapping: {
+                [key: string]: string | null;
+            };
+            /** Targets */
+            targets: components["schemas"]["JobsImportTarget"][];
+            /** Status Column */
+            status_column: string | null;
+            /**
+             * Status Values
+             * @description Distinct values of the columns mapped to status and reached (furthest stage); one status_map covers both
+             */
+            status_values: components["schemas"]["JobsImportStatusValue"][];
+            /**
+             * Day First Suggested
+             * @description Some dates only read as day/month/year
+             */
+            day_first_suggested: boolean;
+        };
+        /** JobsImportProblem */
+        JobsImportProblem: {
+            /**
+             * Row
+             * @description Row number in the file; the header is row 1
+             */
+            row: number;
+            /**
+             * Code
+             * @description missing_company, missing_title, missing_name, unknown_status, bad_date, duplicate_row
+             */
+            code: string;
+            /** Field */
+            field: string | null;
+            /**
+             * Skipped
+             * @description The row was left out (otherwise only the field was)
+             */
+            skipped: boolean;
+        };
+        /** JobsImportReport */
+        JobsImportReport: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "applications" | "contacts";
+            /** Committed */
+            committed: boolean;
+            /** Rows */
+            rows: number;
+            /** Create */
+            create: number;
+            /** Update */
+            update: number;
+            /** Unchanged */
+            unchanged: number;
+            /**
+             * Promote
+             * @description Rows that submit an open lead of the same posting
+             */
+            promote: number;
+            /** Skipped */
+            skipped: number;
+            /** Companies Created */
+            companies_created: number;
+            /**
+             * Problems
+             * @description At most 500 listed
+             */
+            problems: components["schemas"]["JobsImportProblem"][];
+            /**
+             * Matches
+             * @description At most 500 listed
+             */
+            matches: components["schemas"]["JobsImportMatch"][];
+            /**
+             * Batch Id
+             * @description The commit's audit batch, for undo
+             */
+            batch_id: string | null;
+        };
+        /** JobsImportSpec */
+        JobsImportSpec: {
+            /**
+             * Csv
+             * @description The CSV file's text (UTF-8)
+             */
+            csv: string;
+            /**
+             * Kind
+             * @default applications
+             * @enum {string}
+             */
+            kind?: "applications" | "contacts";
+            /**
+             * Mapping
+             * @description Header -> field key, or null to skip
+             */
+            mapping: {
+                [key: string]: string | null;
+            };
+            /**
+             * Status Map
+             * @description Status cell value -> status key
+             */
+            status_map?: {
+                [key: string]: string;
+            };
+            /**
+             * Day First
+             * @description Read 05/11/2026 as 5 November
+             * @default false
+             */
+            day_first?: boolean;
+            /**
+             * Keep Unmapped
+             * @description Keep unmapped columns in an application's extra
+             * @default true
+             */
+            keep_unmapped?: boolean;
+        };
+        /** JobsImportStatusValue */
+        JobsImportStatusValue: {
+            /** Value */
+            value: string;
+            /** Count */
+            count: number;
+            /** Suggested */
+            suggested: string | null;
+        };
+        /** JobsImportTarget */
+        JobsImportTarget: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "text" | "date" | "status" | "tags";
+            /** Required */
+            required: boolean;
+        };
+        /** JobsImportUndoIn */
+        JobsImportUndoIn: {
+            /** Batch Id */
+            batch_id: string;
+        };
+        /** JobsImportUndoOut */
+        JobsImportUndoOut: {
+            /** Reverted */
+            reverted: number;
+            /**
+             * Conflicts
+             * @description Changes left alone because they were edited since
+             */
+            conflicts: number;
+        };
+        /** LeadCreate */
+        LeadCreate: {
+            /**
+             * Company Id
+             * @description An existing company
+             */
+            company_id?: number | null;
+            /**
+             * Company
+             * @description A company name, matched ignoring case and spacing and created if new; used when company_id is left out
+             */
+            company?: string | null;
+            /**
+             * Location
+             * @default
+             */
+            location?: string;
+            /**
+             * Posting Url
+             * @default
+             */
+            posting_url?: string;
+            /**
+             * Source
+             * @description Where the posting was found
+             * @default
+             */
+            source?: string;
+            /**
+             * Next Action
+             * @default
+             */
+            next_action?: string;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /**
+             * Tags
+             * @description Free-form labels, e.g. remote or referral
+             */
+            tags?: string[];
+            /** Title */
+            title: string;
+            /**
+             * Found On
+             * @description Defaults to today
+             */
+            found_on?: string | null;
+            /**
+             * Force
+             * @description Log it even when the posting is already tracked (a repost)
+             * @default false
+             */
+            force?: boolean;
         };
         /** LoginIn */
         LoginIn: {
@@ -1302,6 +2981,63 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /** PipelineInterviews */
+        PipelineInterviews: {
+            /**
+             * Applications
+             * @description Applications with at least one interview
+             */
+            applications: number;
+            /** Records */
+            records: number;
+        };
+        /** PipelineLeads */
+        PipelineLeads: {
+            /** Open */
+            open: number;
+            /** Dropped */
+            dropped: number;
+        };
+        /** PipelineOut */
+        PipelineOut: {
+            /**
+             * Total
+             * @description Submitted applications (leads not counted)
+             */
+            total: number;
+            /**
+             * By Status
+             * @description Current status only
+             */
+            by_status: components["schemas"]["PipelineStatusCount"][];
+            /**
+             * Reached
+             * @description Per active stage, applications whose history got that far or past
+             */
+            reached: components["schemas"]["PipelineStageCount"][];
+            leads: components["schemas"]["PipelineLeads"];
+            interviews: components["schemas"]["PipelineInterviews"];
+        };
+        /** PipelineStageCount */
+        PipelineStageCount: {
+            /** Status */
+            status: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+        };
+        /** PipelineStatusCount */
+        PipelineStatusCount: {
+            /** Status */
+            status: string;
+            /** Label */
+            label: string;
+            /** Kind */
+            kind: string;
+            /** Count */
+            count: number;
+        };
         /** ProviderAccountOut */
         ProviderAccountOut: {
             /** Id */
@@ -1374,6 +3110,43 @@ export interface components {
             /** Stale After Seconds */
             stale_after_seconds: number;
         };
+        /** StatusEventOut */
+        StatusEventOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /** Application Id */
+            application_id: number;
+            /** Status */
+            status: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Note */
+            note: string;
+        };
+        /** StatusEventUpdate */
+        StatusEventUpdate: {
+            /** Status */
+            status?: string | null;
+            /** On Date */
+            on_date?: string | null;
+            /** Note */
+            note?: string | null;
+        };
         /** StatusOut */
         StatusOut: {
             /** Ok */
@@ -1408,6 +3181,60 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WeekProgressOut */
+        WeekProgressOut: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /**
+             * Week End
+             * Format: date
+             */
+            week_end: string;
+            /** Goals */
+            goals: components["schemas"]["GoalProgressOut"][];
+        };
+        /** WeeklyGoalCreate */
+        WeeklyGoalCreate: {
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "applications" | "outreach" | "leads" | "interviews" | "events";
+            /** Target */
+            target: number;
+        };
+        /** WeeklyGoalOut */
+        WeeklyGoalOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Id */
+            id: number;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "applications" | "outreach" | "leads" | "interviews" | "events";
+            /** Target */
+            target: number;
+        };
+        /** WeeklyGoalUpdate */
+        WeeklyGoalUpdate: {
+            /** Target */
+            target: number;
         };
         /** WindowIn */
         WindowIn: {
@@ -2308,6 +4135,1756 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalendarPushOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_import_preview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobsImportPreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobsImportPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_import_dry_run: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobsImportSpec"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobsImportReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_import_commit: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobsImportSpec"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobsImportReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_import_undo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobsImportUndoIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobsImportUndoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_statuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_add_status_definition: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobStatusCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_reorder_statuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobStatusOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_remove_status_definition: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_status_definition: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_companies: {
+        parameters: {
+            query?: {
+                /** @description Part of the name */
+                q?: string | null;
+                tag?: string | null;
+                target?: boolean | null;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyRowOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_company: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_get_company: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                company_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_company: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                company_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_company: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                company_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_applications: {
+        parameters: {
+            query?: {
+                /** @description One or more status keys */
+                status?: string[] | null;
+                /** @description Leads (open and dropped) are left out unless asked for */
+                leads?: "exclude" | "include" | "only";
+                sort?: "-date_applied" | "date_applied" | "-updated_at" | "-id";
+                /** @description Only next actions due on or before */
+                due_by?: string | null;
+                limit?: number;
+                company_id?: number | null;
+                /** @description Matches the application's or its company's tags */
+                tag?: string | null;
+                applied_from?: string | null;
+                applied_to?: string | null;
+                /** @description Part of the title or company name */
+                q?: string | null;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_application: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_get_application: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_application: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_application: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_status_events: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusEventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_add_status_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobStatusChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_apply_to_lead: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["JobApplyIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_drop_lead: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                application_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobDropIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_status_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_status_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusEventUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusEventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_leads: {
+        parameters: {
+            query?: {
+                /** @description Also the leads cut without applying */
+                include_dropped?: boolean;
+                limit?: number;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_lead: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_contacts: {
+        parameters: {
+            query?: {
+                company_id?: number | null;
+                tag?: string | null;
+                /** @description Part of the name, role or company */
+                q?: string | null;
+                /** @description Only next actions due on or before */
+                due_by?: string | null;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_contact: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_get_contact: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_contact: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_contact: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_interviews: {
+        parameters: {
+            query?: {
+                application_id?: number | null;
+                /** @description Only today on, and unscheduled ones */
+                upcoming?: boolean;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_interview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_get_interview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                interview_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_interview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                interview_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_interview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                interview_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_events: {
+        parameters: {
+            query?: {
+                /** @description On or after */
+                start?: string | null;
+                /** @description On or before */
+                end?: string | null;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobEventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobEventCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobEventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_get_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobEventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_event: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobEventUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobEventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_goals: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyGoalOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_create_goal: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyGoalCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyGoalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_delete_goal: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                goal_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_update_goal: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                goal_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyGoalUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyGoalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_goal_progress: {
+        parameters: {
+            query?: {
+                /** @description Any day of the week; default today */
+                week?: string | null;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeekProgressOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_get_pipeline: {
+        parameters: {
+            query?: {
+                company_id?: number | null;
+                /** @description Matches the application's or its company's tags */
+                tag?: string | null;
+                applied_from?: string | null;
+                applied_to?: string | null;
+                /** @description Part of the title or company name */
+                q?: string | null;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PipelineOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_list_tags: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobTagsOut"];
                 };
             };
             /** @description Validation Error */

@@ -24,6 +24,7 @@ from types import ModuleType
 MODULE_NAMES = (
     "calendar",
     "mail",
+    "jobs",
 )
 
 MODULES: tuple[ModuleType, ...] = tuple(
