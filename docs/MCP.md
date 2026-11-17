@@ -15,12 +15,12 @@ database. It runs two ways:
 | `calendar` | `calendar`, `calendar_sources` | `api` | Read-only. Every source merged, with each mirror's freshness. |
 | `mail` | `emails`, `email` | `mail` | Read-only and **opt-in**. See the safety rule below. |
 | `jobs` | reads: `applications`, `leads`, `companies`, `contacts`, `interviews`, `job_events`, `pipeline`, `job_statuses`, `weekly_goals`; writes: `add_application`, `set_application_status`, `add_lead`, `mark_applied`, `drop_lead`, `update_company`, `add_contact`, `update_contact`, `add_interview`, `update_interview`, `add_job_event`, `update_job_event`, `set_weekly_goal` | `api` | The job tracker ([JOBS.md](JOBS.md)). Writes are logged under the token's author and revertible from History. |
-| `reminders` | | `api` | Coming with that feature. Naming it today is a clear startup error. |
+| `reminders` | `reminders`, `reminder_lists`, `add_reminder`, `update_reminder`, `complete_reminder` | `api` | Reads and writes Apple Reminders (through the Mac helper) and Google Tasks; see docs/REMINDERS.md. |
 
 `ORGANIZER_MCP_TOOLSETS` picks what a server serves: `all` (the default) is every toolset except
 `mail`, or give a comma list such as `calendar` or `mail`. `ORGANIZER_MCP_READ_ONLY=1` drops
-every tool that writes. Because `jobs` writes, `all,mail` is refused unless the server is also
-read-only; `calendar,mail` is fine.
+every tool that writes. Because `jobs` and `reminders` write, `all,mail` is refused unless the
+server is also read-only; `calendar,mail` is fine.
 
 ## Tokens
 

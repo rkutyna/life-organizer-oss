@@ -1217,6 +1217,276 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reminders
+         * @description Open reminders by due date (undated last), then completed ones, newest first.
+         */
+        get: operations["reminders_list_reminders"];
+        put?: never;
+        /**
+         * Create Reminder
+         * @description Queue a new reminder. It is shown at once and keeps its id when the provider reports it.
+         *     Google Tasks lists refuse a due time and a priority (422).
+         */
+        post: operations["reminders_create_reminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reminder Lists
+         * @description Every list: Apple Reminders first, then each Google account's task lists.
+         */
+        get: operations["reminders_reminder_lists"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reminders Status
+         * @description Each source's freshness, whether the helper is polling, and what is queued or failed.
+         */
+        get: operations["reminders_reminders_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Now
+         * @description Poll every Google Tasks account now (and retry pending Google ops). Apple Reminders
+         *     syncs whenever the Mac helper pushes.
+         */
+        post: operations["reminders_sync_now"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/ops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ops
+         * @description Queued changes, newest first.
+         */
+        get: operations["reminders_list_ops"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/ops/{op_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Withdraw Op
+         * @description Withdraw a pending or failed op. Withdrawing a create the provider never got removes the
+         *     reminder from the organizer. If the helper already picked the op up, its change may still
+         *     land; the next push shows what Apple Reminders holds.
+         */
+        delete: operations["reminders_withdraw_op"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/ops/{op_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Op
+         * @description Queue a failed op again. A Google op is applied again at once.
+         */
+        post: operations["reminders_retry_op"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{reminder_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Reminder */
+        get: operations["reminders_get_reminder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Reminder
+         * @description Queue a change to the fields sent. Clearing due_date also clears due_time.
+         */
+        patch: operations["reminders_update_reminder"];
+        trace?: never;
+    };
+    "/api/reminders/{reminder_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete Reminder
+         * @description Queue a completion. Completing a completed reminder queues nothing.
+         */
+        post: operations["reminders_complete_reminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{reminder_id}/uncomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Uncomplete Reminder
+         * @description Queue un-completing. An open reminder queues nothing.
+         */
+        post: operations["reminders_uncomplete_reminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Push Reminders
+         * @description Replace the Apple Reminders mirror with this snapshot.
+         */
+        post: operations["ingest_push_reminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/reminders/ops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pending Ops
+         * @description Pending Apple ops in queue order. Apply them in this order, per reminder.
+         */
+        get: operations["ingest_pending_ops"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/reminders/ops/{op_id}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ack Op
+         * @description Record what applying one op did. An op withdrawn in the organizer meanwhile is a 404;
+         *     the helper drops it (whatever it changed is mirrored by the next push).
+         */
+        post: operations["ingest_ack_op"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/status": {
         parameters: {
             query?: never;
@@ -1241,6 +1511,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AckIn */
+        AckIn: {
+            /** Ok */
+            ok: boolean;
+            /** External Id */
+            external_id?: string | null;
+            /** Local Id */
+            local_id?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Conflicts */
+            conflicts?: components["schemas"]["ConflictIn"][];
+        };
         /** ApiTokenCreate */
         ApiTokenCreate: {
             /** Name */
@@ -1879,6 +2162,20 @@ export interface components {
             /** Tags */
             tags?: string[] | null;
         };
+        /** ConflictIn */
+        ConflictIn: {
+            /** Field */
+            field: string;
+            /**
+             * Kept
+             * @enum {string}
+             */
+            kept: "provider" | "organizer";
+            /** Provider Value */
+            provider_value?: string | null;
+            /** Organizer Value */
+            organizer_value?: string | null;
+        };
         /** ContactCreate */
         ContactCreate: {
             /**
@@ -2144,6 +2441,14 @@ export interface components {
              */
             redirect_uri: string;
         };
+        /** GoogleTasksAccountOut */
+        GoogleTasksAccountOut: {
+            /** Account Id */
+            account_id: number;
+            /** Label */
+            label: string;
+            freshness: components["schemas"]["SourceStatusOut"];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2153,6 +2458,57 @@ export interface components {
         HealthOut: {
             /** Ok */
             ok: boolean;
+        };
+        /** HelperOpOut */
+        HelperOpOut: {
+            /** Id */
+            id: number;
+            /** Reminder Id */
+            reminder_id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "create" | "update" | "complete" | "uncomplete";
+            /**
+             * External Id
+             * @description The target's calendarItemExternalIdentifier
+             */
+            external_id: string | null;
+            /**
+             * Local Id
+             * @description The target's calendarItemIdentifier
+             */
+            local_id: string | null;
+            /**
+             * Fields
+             * @description Fields to set; a key that is absent stays as it is
+             */
+            fields: {
+                [key: string]: string | number | null;
+            };
+            /**
+             * Base
+             * @description What the organizer believed Reminders held for those fields when queued
+             */
+            base: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+        };
+        /** HelperOpsOut */
+        HelperOpsOut: {
+            /** Ops */
+            ops: components["schemas"]["HelperOpOut"][];
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
         };
         /** HolidayCountry */
         HolidayCountry: {
@@ -2975,6 +3331,20 @@ export interface components {
             /** Parts */
             parts: string[];
         };
+        /** OpConflictOut */
+        OpConflictOut: {
+            /** Field */
+            field: string;
+            /**
+             * Kept
+             * @enum {string}
+             */
+            kept: "provider" | "organizer";
+            /** Provider Value */
+            provider_value?: string | null;
+            /** Organizer Value */
+            organizer_value?: string | null;
+        };
         /** PasswordIn */
         PasswordIn: {
             /** Current Password */
@@ -3077,6 +3447,365 @@ export interface components {
             source: string;
             /** Message */
             message: string;
+        };
+        /** ReminderCreate */
+        ReminderCreate: {
+            /** Title */
+            title: string;
+            /**
+             * List Id
+             * @description A list id from /api/reminders/lists; default: the default list
+             */
+            list_id?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /** Due Date */
+            due_date?: string | null;
+            /**
+             * Due Time
+             * @description Needs due_date; minute precision. Not for Google Tasks lists.
+             */
+            due_time?: string | null;
+            /**
+             * Priority
+             * @description 1 high, 2 medium, 3 low. Not for Google Tasks lists.
+             */
+            priority?: number | null;
+        };
+        /** ReminderIn */
+        ReminderIn: {
+            /**
+             * External Id
+             * @description calendarItemExternalIdentifier
+             */
+            external_id?: string | null;
+            /**
+             * Local Id
+             * @description calendarItemIdentifier
+             */
+            local_id: string;
+            /** List Id */
+            list_id: string;
+            /**
+             * Title
+             * @default
+             */
+            title?: string;
+            /** Notes */
+            notes?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /**
+             * Due Time
+             * @description HH:MM, local wall clock
+             */
+            due_time?: string | null;
+            /** Priority */
+            priority?: number | null;
+            /**
+             * Completed
+             * @default false
+             */
+            completed?: boolean;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Modified At */
+            modified_at?: string | null;
+        };
+        /** ReminderListIn */
+        ReminderListIn: {
+            /**
+             * Id
+             * @description EKCalendar.calendarIdentifier
+             */
+            id: string;
+            /**
+             * Title
+             * @default
+             */
+            title?: string;
+            /** Color */
+            color?: string | null;
+            /** Account */
+            account?: string | null;
+            /** Account Type */
+            account_type?: string | null;
+            /**
+             * Writable
+             * @default true
+             */
+            writable?: boolean;
+        };
+        /** ReminderListOut */
+        ReminderListOut: {
+            /**
+             * Id
+             * @description Pass it as list_id
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Color */
+            color: string | null;
+            /**
+             * Source
+             * @description apple (through the Mac helper) or google (Google Tasks)
+             * @enum {string}
+             */
+            source: "apple" | "google";
+            /**
+             * Account Id
+             * @description The connected Google account; null for Apple
+             */
+            account_id: number | null;
+            /**
+             * Account
+             * @description The account's name: 'iCloud', a Google address, ...
+             */
+            account: string;
+            /** Account Type */
+            account_type: string | null;
+            /** Writable */
+            writable: boolean;
+            /** Is Default */
+            is_default: boolean;
+            /**
+             * Supports Time
+             * @description False for Google Tasks: a due date but no time
+             */
+            supports_time: boolean;
+            /**
+             * Supports Priority
+             * @description False for Google Tasks: no priority
+             */
+            supports_priority: boolean;
+            /**
+             * Open Count
+             * @description Incomplete reminders in the list, pending changes included
+             */
+            open_count: number;
+        };
+        /** ReminderOpOut */
+        ReminderOpOut: {
+            /** Id */
+            id: number;
+            /** Reminder Id */
+            reminder_id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "create" | "update" | "complete" | "uncomplete";
+            /**
+             * Applier
+             * @enum {string}
+             */
+            applier: "helper" | "server";
+            /**
+             * Fields
+             * @description What the op sets, in wire form (due_date YYYY-MM-DD, due_time HH:MM)
+             */
+            fields: {
+                [key: string]: string | number | null;
+            };
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "applied" | "failed";
+            /** Error */
+            error: string | null;
+            /** Conflicts */
+            conflicts: components["schemas"]["OpConflictOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             * @description When it was queued
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Applied At */
+            applied_at: string | null;
+        };
+        /**
+         * ReminderOut
+         * @description A reminder as the organizer shows it: the provider's state with queued changes applied.
+         */
+        ReminderOut: {
+            /** Id */
+            id: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "apple" | "google";
+            /** Account Id */
+            account_id: number | null;
+            /**
+             * External Id
+             * @description The provider's id, null until known
+             */
+            external_id: string | null;
+            /** List Id */
+            list_id: string | null;
+            /** List Title */
+            list_title: string | null;
+            /** List Color */
+            list_color: string | null;
+            /** Title */
+            title: string;
+            /** Notes */
+            notes: string;
+            /** Due Date */
+            due_date: string | null;
+            /** Due Time */
+            due_time: string | null;
+            /**
+             * Priority
+             * @description 1 high, 2 medium, 3 low
+             */
+            priority: number | null;
+            /** Completed */
+            completed: boolean;
+            /** Completed At */
+            completed_at: string | null;
+            /** Url */
+            url: string | null;
+            /**
+             * Modified At
+             * @description Last modified at the provider
+             */
+            modified_at: string | null;
+            /**
+             * Mirrored At
+             * @description Last sync that carried it; null if never
+             */
+            mirrored_at: string | null;
+            /**
+             * In Provider
+             * @description False until the provider has reported it
+             */
+            in_provider: boolean;
+            sync: components["schemas"]["ReminderSyncOut"];
+        };
+        /** ReminderStatusOut */
+        ReminderStatusOut: {
+            /** @description The Mac helper's Apple Reminders pushes */
+            helper: components["schemas"]["SourceStatusOut"];
+            /**
+             * Google
+             * @description Each Google account that granted Tasks, with its last poll
+             */
+            google: components["schemas"]["GoogleTasksAccountOut"][];
+            /**
+             * Last Ops Poll At
+             * @description Last time the helper asked for ops
+             */
+            last_ops_poll_at: string | null;
+            /**
+             * Helper Polling
+             * @description The helper asked for ops in the last 2 minutes
+             */
+            helper_polling: boolean;
+            /** Pending Ops */
+            pending_ops: number;
+            /** Failed Ops */
+            failed_ops: number;
+            /** Oldest Pending At */
+            oldest_pending_at: string | null;
+            /**
+             * Waiting For Device
+             * @description A helper op is over 2 minutes old and helper_polling is false
+             */
+            waiting_for_device: boolean;
+        };
+        /** ReminderSyncOut */
+        ReminderSyncOut: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "synced" | "syncing" | "waiting_for_device" | "failed";
+            /**
+             * Pending Fields
+             * @description Fields whose shown value the provider does not have yet
+             */
+            pending_fields: ("title" | "notes" | "due" | "priority" | "completed" | "list")[];
+            /**
+             * Pending Ops
+             * @description Pending and failed ops, oldest first
+             */
+            pending_ops: components["schemas"]["ReminderOpOut"][];
+            /**
+             * Waiting Since
+             * @description When the oldest pending op was queued
+             */
+            waiting_since: string | null;
+            /**
+             * Error
+             * @description The newest failed op's error
+             */
+            error: string | null;
+        };
+        /** ReminderSyncOutcomeOut */
+        ReminderSyncOutcomeOut: {
+            /** Account Id */
+            account_id: number;
+            /** Ok */
+            ok: boolean;
+            /** Lists */
+            lists: number;
+            /** Reminders */
+            reminders: number;
+            /** Error */
+            error: string | null;
+        };
+        /**
+         * ReminderUpdate
+         * @description PATCH body. Only the fields you send change; null clears due_date, due_time or priority.
+         *
+         *     Clearing due_date also clears due_time. list_id moves the reminder to another list of the
+         *     same account.
+         */
+        ReminderUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Due Time */
+            due_time?: string | null;
+            /** Priority */
+            priority?: number | null;
+            /** List Id */
+            list_id?: string | null;
+        };
+        /** RemindersPushIn */
+        RemindersPushIn: {
+            /** Lists */
+            lists: components["schemas"]["ReminderListIn"][];
+            /** Default List Id */
+            default_list_id?: string | null;
+            /** Reminders */
+            reminders: components["schemas"]["ReminderIn"][];
+        };
+        /** RemindersPushOut */
+        RemindersPushOut: {
+            /** Lists */
+            lists: number;
+            /** Reminders */
+            reminders: number;
+            /** Removed */
+            removed: number;
         };
         /** SetupIn */
         SetupIn: {
@@ -6099,6 +6828,527 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MailMessageDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_list_reminders: {
+        parameters: {
+            query?: {
+                /** @description Only this list (an id from /lists) */
+                list?: string | null;
+                /** @description Also reminders completed (last 30 days) */
+                include_completed?: boolean;
+                /** @description true: only with a due date; false: only without */
+                dated?: boolean | null;
+                limit?: number;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_create_reminder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_reminder_lists: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderListOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_reminders_status: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_sync_now: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderSyncOutcomeOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_list_ops: {
+        parameters: {
+            query?: {
+                /** @description Default: pending and failed */
+                state?: ("pending" | "applied" | "failed") | null;
+                reminder_id?: number | null;
+                limit?: number;
+            };
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOpOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_withdraw_op: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                op_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_retry_op: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                op_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOpOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_get_reminder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                reminder_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_update_reminder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                reminder_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_complete_reminder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                reminder_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminders_uncomplete_reminder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                reminder_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_push_reminders: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemindersPushIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemindersPushOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_pending_ops: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelperOpsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_ack_op: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path: {
+                op_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderOpOut"];
                 };
             };
             /** @description Validation Error */

@@ -38,7 +38,14 @@ JOBS_TOOLS = [
     "update_job_event",
     "set_weekly_goal",
 ]
-EXPECTED_TOOLS = CALENDAR_TOOLS + MAIL_TOOLS + JOBS_TOOLS
+REMINDER_TOOLS = [
+    "reminders",
+    "reminder_lists",
+    "add_reminder",
+    "complete_reminder",
+    "update_reminder",
+]
+EXPECTED_TOOLS = CALENDAR_TOOLS + MAIL_TOOLS + JOBS_TOOLS + REMINDER_TOOLS
 
 
 def listed() -> dict[str, Any]:
@@ -71,8 +78,12 @@ def test_serve_only_removes_the_tools_left_out(monkeypatch: pytest.MonkeyPatch) 
 
     assert server.serve_only(toolsets.choose(None, False)) == ["emails", "email"]
     assert removed == ["emails", "email"]
-    assert server.serve_only(toolsets.choose("mail", False)) == CALENDAR_TOOLS + JOBS_TOOLS
-    assert server.serve_only(toolsets.choose("calendar,mail", False)) == JOBS_TOOLS
+    assert server.serve_only(toolsets.choose("mail", False)) == (
+        CALENDAR_TOOLS + JOBS_TOOLS + REMINDER_TOOLS
+    )
+    assert server.serve_only(toolsets.choose("calendar,mail", False)) == (
+        JOBS_TOOLS + REMINDER_TOOLS
+    )
     assert server.serve_only(toolsets.choose("all,mail", True)) == []
 
 
@@ -126,7 +137,7 @@ def test_main_for_mail_needs_only_the_mail_token(
 
 @pytest.mark.parametrize(
     ("toolsets_env", "message"),
-    [("email", "unknown toolset"), ("reminders", "not in this version yet")],
+    [("email", "unknown toolset"), ("calendar,later", "unknown toolset")],
 )
 def test_main_refuses_bad_toolsets(
     run: list[str],

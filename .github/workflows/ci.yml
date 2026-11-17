@@ -57,6 +57,16 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck && npm run build
 
+  mac-helper:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mac-helper
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift build && swift test
+
   docker:
     runs-on: ubuntu-latest
     steps:

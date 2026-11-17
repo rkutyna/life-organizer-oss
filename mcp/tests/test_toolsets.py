@@ -49,16 +49,18 @@ def test_each_module_declares_exactly_the_tools_it_defines() -> None:
 
 
 def test_the_toolsets_of_this_version() -> None:
-    from organizer_mcp.tools import jobs
+    from organizer_mcp.tools import jobs, reminders
 
     assert {
         "calendar": {"calendar", "calendar_sources"},
         "mail": {"emails", "email"},
         "jobs": jobs.TOOLS,
+        "reminders": reminders.TOOLS,
     } == toolsets.TOOLSETS
-    assert jobs.WRITES == toolsets.WRITE_TOOLS
-    assert toolsets.SCOPES == {"calendar": "api", "mail": "mail", "jobs": "api"}
-    assert {"reminders"} == toolsets.PLANNED
+    assert jobs.WRITES | reminders.WRITES == toolsets.WRITE_TOOLS
+    assert {"add_reminder", "update_reminder", "complete_reminder"} == reminders.WRITES
+    assert toolsets.SCOPES == {"calendar": "api", "mail": "mail", "jobs": "api", "reminders": "api"}
+    assert frozenset() == toolsets.PLANNED
 
 
 def test_derive_refuses_a_tool_declared_twice() -> None:
@@ -91,7 +93,7 @@ def test_derive_keeps_first_seen_order_and_merges() -> None:
 
 def test_parse_toolsets() -> None:
     everything_but_mail = set(toolsets.TOOLSETS) - {"mail"}
-    assert toolsets.parse_toolsets(None) == everything_but_mail == {"calendar", "jobs"}
+    assert toolsets.parse_toolsets(None) == everything_but_mail == {"calendar", "jobs", "reminders"}
     assert toolsets.parse_toolsets(" all ") == everything_but_mail
     assert toolsets.parse_toolsets("all, Mail") == set(toolsets.TOOLSETS)
     assert toolsets.parse_toolsets("mail") == {"mail"}
@@ -100,8 +102,12 @@ def test_parse_toolsets() -> None:
         toolsets.parse_toolsets("calendar,email")
 
 
-@pytest.mark.parametrize("name", ["reminders", "calendar,Reminders"])
-def test_a_planned_toolset_says_it_is_not_built_yet(name: str) -> None:
+@pytest.mark.parametrize("name", ["later", "calendar,Later"])
+def test_a_planned_toolset_says_it_is_not_built_yet(
+    name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Every planned toolset is built now; the rule stays for the next one.
+    monkeypatch.setattr(toolsets, "PLANNED", frozenset({"later"}))
     with pytest.raises(toolsets.UnknownToolset, match="not in this version yet; choose from all"):
         toolsets.parse_toolsets(name)
 
@@ -155,7 +161,7 @@ def test_mail_beside_the_read_only_calendar_is_allowed() -> None:
 def test_mail_beside_the_jobs_writes_is_refused_unless_read_only() -> None:
     with pytest.raises(ConfigError, match="only without write tools"):
         toolsets.choose("all,mail", read_only=False)
-    assert toolsets.choose("all,mail", read_only=True) == {"calendar", "mail", "jobs"}
+    assert toolsets.choose("all,mail", read_only=True) == {"calendar", "mail", "jobs", "reminders"}
 
 
 def test_choose_names_the_variable() -> None:
@@ -165,5 +171,13 @@ def test_choose_names_the_variable() -> None:
 
 def test_selected_tools_keep_registration_order() -> None:
     available = [tool.name for tool in server.app._tool_manager.list_tools()]
-    assert toolsets.selected_tools(available, {"calendar", "mail", "jobs"}, False) == available
+    assert toolsets.selected_tools(available, {"calendar", "mail", "jobs", "reminders"}, False) == (
+        available
+    )
+    assert toolsets.selected_tools(available, {"calendar", "mail"}, False) == [
+        "calendar",
+        "calendar_sources",
+        "emails",
+        "email",
+    ]
     assert toolsets.selected_tools(available, {"mail"}, False) == ["emails", "email"]

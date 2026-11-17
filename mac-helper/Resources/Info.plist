@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.lifeorganizerformac.helper</string>
+	<key>CFBundleName</key>
+	<string>Life Organizer Helper</string>
+	<key>CFBundleDisplayName</key>
+	<string>Life Organizer Helper</string>
+	<key>CFBundleExecutable</key>
+	<string>organizer-helper</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Life Organizer Helper reads your calendars and sends them to your organizer server, so every event shows in one place. It never changes your calendars.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Life Organizer Helper reads your calendars and sends them to your organizer server. It never changes your calendars.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Life Organizer Helper syncs your reminders with your organizer server: it reads your lists and applies the changes you make in the organizer (add, edit, check off). It never deletes a reminder.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Life Organizer Helper syncs your reminders with your organizer server. It never deletes a reminder.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Life Organizer Helper sends your calendar and reminders to your organizer server, which may be on your local network.</string>
+</dict>
+</plist>
