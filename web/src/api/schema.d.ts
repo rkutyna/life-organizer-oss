@@ -1523,6 +1523,11 @@ export interface components {
             error?: string | null;
             /** Conflicts */
             conflicts?: components["schemas"]["ConflictIn"][];
+            /**
+             * Instance Id
+             * @description The instance_id the op was fetched with; another instance's ack is a 409
+             */
+            instance_id?: string | null;
         };
         /** ApiTokenCreate */
         ApiTokenCreate: {
@@ -2509,6 +2514,11 @@ export interface components {
              * Format: date-time
              */
             server_time: string;
+            /**
+             * Instance Id
+             * @description This database's identity, stable for its life. Op ids are unique within it only: key anything remembered about an op by (instance_id, id).
+             */
+            instance_id: string;
         };
         /** HolidayCountry */
         HolidayCountry: {
@@ -3487,7 +3497,10 @@ export interface components {
              * @description calendarItemIdentifier
              */
             local_id: string;
-            /** List Id */
+            /**
+             * List Id
+             * @description One of the snapshot's own lists
+             */
             list_id: string;
             /**
              * Title
@@ -3795,7 +3808,10 @@ export interface components {
             lists: components["schemas"]["ReminderListIn"][];
             /** Default List Id */
             default_list_id?: string | null;
-            /** Reminders */
+            /**
+             * Reminders
+             * @description A reminder whose list_id is not in `lists` is dropped
+             */
             reminders: components["schemas"]["ReminderIn"][];
         };
         /** RemindersPushOut */

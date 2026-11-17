@@ -2,7 +2,7 @@
 
 Revision ID: 0006
 Revises: 0005
-Create Date: 2026-11-16 20:33:39.612163
+Create Date: 2026-11-16 20:59:16.951506
 
 """
 
@@ -29,9 +29,18 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("kind", name=op.f("pk_reminders_helper_contact")),
     )
     op.create_table(
+        "reminders_instance",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("instance_id", sa.String(length=64), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_reminders_instance")),
+    )
+    op.create_table(
         "reminders_ops",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("reminder_id", sa.Integer(), nullable=False),
+        sa.Column("source", sa.String(length=16), nullable=True),
+        sa.Column("account_id", sa.Integer(), nullable=True),
         sa.Column("kind", sa.String(length=16), nullable=False),
         sa.Column("applier", sa.String(length=16), nullable=False),
         sa.Column("payload", sa.JSON(), nullable=False),
@@ -48,6 +57,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_reminders_ops")),
+        sqlite_autoincrement=True,
     )
     with op.batch_alter_table("reminders_ops", schema=None) as batch_op:
         batch_op.create_index(batch_op.f("ix_reminders_ops_applier"), ["applier"], unique=False)
@@ -78,6 +88,7 @@ def upgrade() -> None:
         sa.Column("ext_created_at", sa.DateTime(), nullable=True),
         sa.Column("ext_modified_at", sa.DateTime(), nullable=True),
         sa.Column("received_at", sa.DateTime(), nullable=True),
+        sa.Column("first_received_at", sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(
             ["account_id"],
             ["core_provider_accounts.id"],
@@ -85,6 +96,7 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_reminders_items")),
+        sqlite_autoincrement=True,
     )
     with op.batch_alter_table("reminders_items", schema=None) as batch_op:
         batch_op.create_index(
@@ -158,5 +170,6 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f("ix_reminders_ops_applier"))
 
     op.drop_table("reminders_ops")
+    op.drop_table("reminders_instance")
     op.drop_table("reminders_helper_contact")
     # ### end Alembic commands ###
