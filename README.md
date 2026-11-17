@@ -81,8 +81,8 @@ To try it with made-up data first, see "Demo data" in [docs/SETUP.md](docs/SETUP
 ## Development
 
 ```bash
-cd server && uv sync && uv run alembic upgrade head && EXPOSE_API_DOCS=true uv run uvicorn app.main:app --reload --port 8601
-cd web && npm install && API_URL=http://localhost:8601 npm run dev
+cd server && uv sync && uv run alembic upgrade head && EXPOSE_API_DOCS=true uv run uvicorn app.main:app --reload --port 8610
+cd web && npm install && API_URL=http://localhost:8610 npm run dev
 ```
 
 Server tests: `cd server && uv run pytest`. Web: `npm run typecheck && npm run build`. MCP:

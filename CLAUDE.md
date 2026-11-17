@@ -12,16 +12,19 @@ The developer rules below are for changing the code.
 
 # Working in this repo (developers)
 
-Read `docs/PLAN.md` first. This repo will become public: it is a self-hosted, single-user
-organizer (calendar, reminders, job tracker, mail) extracted from a private personal organizer.
+This repo is public. It is a self-hosted, single-user organizer (calendar, reminders, job
+tracker, mail, an MCP server, a Mac helper and a native Mac app). `docs/PLAN.md` records the
+design decisions and how it was built; `SECURITY.md` is the threat model every change must keep.
 
 ## Rules
 
 1. **No personal data, ever.** No real names, emails, hostnames, domains, tailnet names, Apple
    team or bundle ids, account ids, folder paths under `/Users/`, or anything copied from a real
-   calendar, mailbox or job record. Fixtures and seeds are fictional. Run `scripts/scrub-check.sh`
-   (once it exists) before every commit.
-2. **Port code module by module and scrub it**; never import the original repo's git history.
+   calendar, mailbox or job record. Fixtures and seeds are fictional. The git hooks run
+   `scripts/scrub-check.sh` on every commit and message (`git config core.hooksPath .githooks`
+   once per clone).
+2. **Keep it generic.** Nothing specific to one person's setup: no hostnames, account names or
+   workflows baked in; anything per-install is a setting.
 3. **Owned records are written only through `server/app/audit.py`.**
 4. **Mirrored data is read-only.** Calendars, reminders (except through the op queue) and mail
    are never edited directly. Mail is read-only end to end and can never send, delete, move or flag.
@@ -37,15 +40,19 @@ organizer (calendar, reminders, job tracker, mail) extracted from a private pers
 
 ```bash
 cd server && uv sync && uv run pytest          # tests (ruff check . && ruff format --check .)
-uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8600
+uv run alembic upgrade head && EXPOSE_API_DOCS=true uv run uvicorn app.main:app --reload --port 8610
 uv run alembic revision --autogenerate --rev-id 00NN -m "..."   # after changing models
-cd web && npm install && npm run dev           # proxies /api to :8600
-npm run typecheck && npm run build && npm run gen:api   # gen:api: server with EXPOSE_API_DOCS=true
+cd web && npm install && API_URL=http://localhost:8610 npm run dev
+npm run typecheck && npm run build && API_URL=http://localhost:8610 npm run gen:api
+cd mcp && uv run pytest                        # MCP server
+cd mac-helper && swift build && swift test     # Mac helper
+apple/scripts/test.sh && apple/scripts/build.sh   # Mac app (no Apple team needed)
 docker compose up -d --build                   # needs .env (see .env.example)
 scripts/scrub-check.sh [--staged|--history]    # personal-data check
 ```
 
 ## Done means
 
-Server tests, web typecheck and build, and `scripts/scrub-check.sh --history` pass; the change
+Server, MCP, web, Mac helper and Mac app checks pass (as relevant), and
+`scripts/scrub-check.sh --history` passes; the change
 is committed with a clear message.

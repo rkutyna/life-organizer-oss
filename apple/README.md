@@ -118,7 +118,7 @@ In Xcode, Product → Scheme → Edit Scheme → Run → Arguments has the first
 shell:
 
 ```bash
-ORGANIZER_BASE_URL=http://localhost:8601 ORGANIZER_TOKEN=... \
+ORGANIZER_BASE_URL=http://localhost:8600 ORGANIZER_TOKEN=... \
   "apple/.build/DerivedData/Build/Products/Debug/Life Organizer.app/Contents/MacOS/Life Organizer"
 ```
 
@@ -218,7 +218,7 @@ apple/
   the UI, hence Xcode 26.
 - **API types** are generated, never written by hand. Run a local server with
   `EXPOSE_API_DOCS=true` (docs/SETUP.md, "Development"), then
-  `apple/scripts/gen-api.sh http://localhost:8601` (`--offline` regenerates from the snapshot).
+  `apple/scripts/gen-api.sh http://localhost:8610` (a development server started with `EXPOSE_API_DOCS=true`, SETUP.md) (`--offline` regenerates from the snapshot).
   The script refuses any host but this Mac. Commit `openapi.json` and `Generated/` together.
 - **Client:** sends `Authorization: Bearer` (and the Access headers when set); an error shows the
   server's own message. Every GET but mail is saved as the last good copy; a screen starts from it
@@ -227,7 +227,7 @@ apple/
   `Features/<Module>/`, registered in `Shell/ModuleRegistry.swift`. Calendar is the reference.
 - **Looking at screens without a window:** with a local demo server (docs/SETUP.md, "Demo data")
   and a token for it,
-  `ORGANIZER_TEST_SERVER=http://localhost:8601 ORGANIZER_TEST_TOKEN=... ORGANIZER_SNAPSHOT_DIR=/tmp/shots apple/scripts/test.sh --filter Snapshot`
+  `ORGANIZER_TEST_SERVER=http://localhost:8611 ORGANIZER_TEST_TOKEN=... ORGANIZER_SNAPSHOT_DIR=/tmp/shots apple/scripts/test.sh --filter Snapshot`
   draws each screen to a PNG (add `ORGANIZER_SNAPSHOT_APPEARANCE=dark`). Offscreen drawing leaves
   out materials, so a selected sidebar row shows as a dark block there, not in the app.
 - **Writes against a demo server:** `ORGANIZER_LIVE_WRITES=1` plus the two variables above runs

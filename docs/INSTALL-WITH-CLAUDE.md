@@ -28,13 +28,18 @@ when it doesn't. Work through the steps in order, and stop at every decision poi
    `--services` or `--no-interpolate` (it prints every resolved secret), don't `docker inspect`
    the containers, and don't echo tokens. To check that a value is set, test it without
    showing it, as the commands below do.
-3. **Ask at every [ASK].** Those are decisions for the human; don't pick for them.
-4. **Don't expose the organizer before step 5 is done.** Until the human has finished setup,
+3. **Never open `.env` with a file tool.** Reading or editing it puts `ORGANIZER_SECRET_KEY` and
+   every token into your transcript. Set values with `scripts/env-set.sh KEY VALUE` (for
+   non-secret values), check them with `scripts/env-set.sh --check KEY` (prints only "set" or
+   "empty"), and have the **[HUMAN]** put secrets in by running `scripts/env-set.sh KEY` in their
+   own terminal, where it asks for the value without showing it.
+4. **Ask at every [ASK].** Those are decisions for the human; don't pick for them.
+5. **Don't expose the organizer before step 5 is done.** Until the human has finished setup,
    whoever opens the page first chooses the password.
-5. **Report, don't work around.** If a step fails in a way this runbook doesn't cover, tell the
+6. **Report, don't work around.** If a step fails in a way this runbook doesn't cover, tell the
    human what you saw. Don't edit the code, the compose file or a Cloudflare setting to get past
    it.
-6. **Leave the user's other things alone.** Don't stop or remove Docker containers, images or
+7. **Leave the user's other things alone.** Don't stop or remove Docker containers, images or
    volumes that aren't this project's, and don't change system settings.
 
 ## Decision points (ask these)
@@ -80,8 +85,14 @@ tailscale version       # step 6, if Tailscale is chosen
 **If it fails:**
 - No Docker, or `docker info` errors: **[HUMAN]** installs and starts Docker Desktop (or
   OrbStack, or Docker Engine on Linux). Installing software is the owner's call.
-- Port 8600 is taken: set `ORGANIZER_PORT` to a free port in step 3, and use that port wherever
-  this runbook says 8600.
+- Port 8600 is taken: in step 3, run `scripts/env-set.sh ORGANIZER_PORT <free port>`. Use that
+  port where this runbook means **this machine's port**: the `curl` checks, `http://localhost:…`
+  in a browser, `tailscale serve`, and `ORGANIZER_URL`. **Inside Docker the organizer is always
+  on 8600**, so tunnel routes such as `http://organizer:8600` never change.
+- The claude.ai connector (step 10) also uses ports 8601 and 8602 on this machine. Check them
+  too: `lsof -nP -iTCP:8601 -sTCP:LISTEN; lsof -nP -iTCP:8602 -sTCP:LISTEN` (no output means
+  free). If either is taken, set `MCP_PORT` / `MCP_MAIL_PORT` with `scripts/env-set.sh` and use
+  those numbers in step 10's checks.
 - No `uv`: it is only needed for step 9 (https://docs.astral.sh/uv/). Ask before installing it.
 
 ## Step 2. Clone
@@ -211,10 +222,10 @@ Follow [CLOUDFLARE.md](CLOUDFLARE.md) with the human. Split of work:
 | Part | Who |
 |---|---|
 | Domain on Cloudflare, Zero Trust organization, team name | **[HUMAN]** (their account) |
-| Create the tunnel; copy its token into `.env` as `CLOUDFLARE_TUNNEL_TOKEN` | **[HUMAN]** (dashboard; the token is a secret) |
+| Create the tunnel; put its token in `.env` by running `scripts/env-set.sh CLOUDFLARE_TUNNEL_TOKEN` in their own terminal and pasting it (hidden) | **[HUMAN]** (dashboard; the token is a secret) |
 | `COMPOSE_PROFILES=cloudflare` in `.env`, `docker compose up -d` | agent |
-| Tunnel route `organizer.<domain>` → `http://organizer:8600` (`http://127.0.0.1:8600` if cloudflared runs on the host) | **[HUMAN]** (dashboard) |
-| Access application for that hostname, Allow policy with their email | **[HUMAN]** (dashboard; it decides who gets in) |
+| Access application for `organizer.<domain>`, Allow policy with their email. **Before the route**: until it exists, the hostname would be public with only the password in front | **[HUMAN]** (dashboard; it decides who gets in) |
+| Tunnel route `organizer.<domain>` → `http://organizer:8600` (`http://127.0.0.1:<ORGANIZER_PORT>` if cloudflared runs on the host) | **[HUMAN]** (dashboard) |
 | `PUBLIC_BASE_URL=https://organizer.<domain>`, `COOKIE_SECURE=always`, `docker compose up -d` | agent |
 | For each token client (Mac app, Mac helper, Claude Code on another machine): a service token, created in Zero Trust → Access controls → Service credentials → Service Tokens | **[HUMAN]** (dashboard; the Client Secret is shown once and is a secret) |
 | A **Service Auth** policy on the web application that includes those service tokens (not Allow, not "Any Access Service Token") | **[HUMAN]** (dashboard) |
@@ -286,15 +297,21 @@ Needs `uv` and `claude` (step 1).
 1. **[HUMAN]** in the organizer, Settings → API tokens → new token, scope **API**, author
    **Claude**. Copy it (shown once).
 2. **[HUMAN]** runs this in **their own terminal**, not through the agent (and not with Claude
-   Code's `!` prefix, which puts the output in the transcript), replacing `<api token>`. The
-   agent fills in the path and URL beforehand:
+   Code's `!` prefix, which puts the output in the transcript). The agent fills in the path and
+   URL beforehand. `read -rs` takes the pasted token without showing it or saving it in the
+   shell history:
 
    ```bash
+   read -rs TOK && echo "token read"
    claude mcp add --env ORGANIZER_URL=http://localhost:8600 \
-     --env ORGANIZER_TOKEN=<api token> \
+     --env ORGANIZER_TOKEN="$TOK" \
      --transport stdio --scope user \
      organizer -- uv run --directory "$HOME/life-organizer/mcp" organizer-mcp
+   unset TOK
    ```
+
+   Claude Code keeps the token in its own config (`~/.claude.json`, readable only by this user).
+   Don't run `claude mcp get organizer` through the agent: it prints the token.
 
    Keep an option such as `--transport` between the last `--env` and the name; directly after
    `--env`, the name is read as another variable. `ORGANIZER_URL` is `http://localhost:8600`
@@ -306,10 +323,12 @@ Needs `uv` and `claude` (step 1).
 3. Mail (optional): a second token, scope **Mail**, author **Claude**, and a second server:
 
    ```bash
+   read -rs MAILTOK && echo "token read"
    claude mcp add --env ORGANIZER_URL=http://localhost:8600 \
-     --env ORGANIZER_MCP_TOOLSETS=mail --env ORGANIZER_MAIL_TOKEN=<mail token> \
+     --env ORGANIZER_MCP_TOOLSETS=mail --env ORGANIZER_MAIL_TOKEN="$MAILTOK" \
      --transport stdio --scope user \
      organizer-mail -- uv run --directory "$HOME/life-organizer/mcp" organizer-mcp
+   unset MAILTOK
    ```
 
    Tell the human to connect `organizer-mail` only to sessions that need mail ([MCP.md](MCP.md),
@@ -349,7 +368,7 @@ step 6b (only the tunnel part, if the web app uses Tailscale). Split of work:
 ```bash
 grep -cE '^ORGANIZER_MCP_TOKEN=org_' .env                 # expect: 1
 docker compose logs organizer-mcp | grep 'serving toolsets'   # expect: serving toolsets calendar,jobs,reminders ...
-curl -si -X POST http://127.0.0.1:8601/mcp -H 'Host: organizer-mcp.example.com' | head -1   # expect: 401
+curl -si -X POST http://127.0.0.1:8601/mcp -H 'Host: organizer-mcp.example.com' | head -1   # expect: 401 (use MCP_PORT if you changed it)
 curl -si https://organizer-mcp.example.com/mcp | grep -i '^www-authenticate'              # expect: a Bearer ... line (from Access)
 ```
 
@@ -375,7 +394,12 @@ app isn't available in this version and skip the step.
 | Xcode 26 or later installed, `xcode-select -p` pointing at it | **[HUMAN]** (App Store) |
 | `apple/scripts/test.sh && apple/scripts/build.sh` (signs to run locally, no team) | agent |
 | Token, author **You**, scopes **API** and **Mail** | **[HUMAN]**, in the web app's Settings → API tokens |
-| Open the app; on first launch enter the server address and paste the token | **[HUMAN]** |
+| Open the app: `open "apple/.build/DerivedData/Build/Products/Debug/Life Organizer.app"` (the agent can run this) | agent |
+| On first launch, enter the server address and paste the token | **[HUMAN]** |
+
+The built app lives inside the repo's `apple/.build/DerivedData`, so a clean build removes it.
+To keep a copy, the human can drag it into `/Applications` (or build with `--release` first;
+`apple/README.md` has the details).
 
 The server address is the one the human opens in a browser (`http://localhost:8600` on the
 organizer's own Mac, else the Tailscale or Cloudflare HTTPS address). The first-launch sheet
@@ -425,10 +449,11 @@ recent push, and the organizer's Reminders page shows the Apple lists within a f
 **Goal:** a copy of the database, outside the repo and apart from `.env`. **[ASK]** where.
 
 ```bash
-mkdir -p ~/organizer-backups
+mkdir -p ~/organizer-backups && chmod 700 ~/organizer-backups
 docker compose exec organizer python -c "import sqlite3; s=sqlite3.connect('data/organizer.db'); d=sqlite3.connect('data/backup.db'); s.backup(d); d.close()"
 docker compose cp organizer:/app/server/data/backup.db ~/organizer-backups/organizer-$(date +%F).db
 docker compose exec organizer rm data/backup.db
+chmod 600 ~/organizer-backups/*.db
 ```
 
 **Verify:** `ls -l ~/organizer-backups/` shows today's file, a few hundred KB or more.
@@ -441,6 +466,19 @@ Tell the human:
   only if they ask (it is a persistent change to their machine).
 
 Restoring is in [SETUP.md](SETUP.md), "Restoring".
+
+## Uninstalling
+
+Only if the human asks. Removing the volume deletes all organizer data, so take a backup first
+(step 13) and confirm with the human.
+
+```bash
+docker compose down -v                                  # containers, network and the data volume
+docker image ls --format '{{.Repository}}' | grep "^$(basename "$PWD")-" | xargs -r docker image rm
+```
+
+The second line removes the images this project built (named after the folder, e.g.
+`life-organizer-organizer`); `docker compose down --rmi local` does not always remove them.
 
 ## Finished
 

@@ -109,29 +109,30 @@ everything since the backup. Connected accounts still need the same `ORGANIZER_S
 
 To look around before connecting anything, fill a separate, fresh database with made-up data.
 This needs the development tools below (uv, Node), not Docker. It never touches an install that
-is already set up. Port 8601 is used so it can run beside a Docker install on 8600.
+is already set up. Port 8611 is used so it can run beside a Docker install (8600) and its
+connector ports (8601, 8602).
 
 ```bash
 cd web && npm install && npm run build && cd ..          # the server serves this build
 cd server && export DATABASE_URL=sqlite:///./data/demo.db
 uv run alembic upgrade head
 uv run python -m app.demo_seed --password "demo password 1"
-SCHEDULER_ENABLED=false WEB_DIST=../web/dist uv run uvicorn app.main:app --port 8601
+SCHEDULER_ENABLED=false WEB_DIST=../web/dist uv run uvicorn app.main:app --port 8611
 ```
 
-Open http://localhost:8601 and sign in with that password. The demo accounts have no real server behind them, which is why
+Open http://localhost:8611 and sign in with that password. The demo accounts have no real server behind them, which is why
 the scheduler is off and opening a demo message shows a connection error.
 
 ## Development
 
 ```bash
 cd server && uv sync && uv run alembic upgrade head
-EXPOSE_API_DOCS=true uv run uvicorn app.main:app --reload --port 8601   # API docs at /docs
-cd web && npm install && API_URL=http://localhost:8601 npm run dev      # http://localhost:5173
+EXPOSE_API_DOCS=true uv run uvicorn app.main:app --reload --port 8610   # API docs at /docs
+cd web && npm install && API_URL=http://localhost:8610 npm run dev      # http://localhost:5173
 ```
 
 The web dev server proxies `/api` to `API_URL` (default `http://localhost:8600`); the examples
-use 8601 so development never collides with a Docker install. `npm run gen:api` reads the same
+use 8610 so development never collides with a Docker install or its connector ports. `npm run gen:api` reads the same
 `API_URL` and needs the server started with `EXPOSE_API_DOCS=true`.
 
 Before committing, run `git config core.hooksPath .githooks` once per clone. The pre-commit hook
