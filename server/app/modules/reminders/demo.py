@@ -14,6 +14,7 @@ from datetime import time, timedelta
 from sqlalchemy.orm import Session
 
 from app import audit, freshness
+from app.auth import service as auth_service
 from app.modules.reminders import sync
 from app.modules.reminders.accounts import HELPER_SOURCE
 from app.timeutil import today_local, utcnow
@@ -63,6 +64,7 @@ ITEMS: list[tuple[str, str, str, int | None, time | None, int | None, int | None
 
 
 def seed(session: Session) -> None:
+    auth_service.apply_timezone(session)  # "today" in the owner's zone, even from a script
     now = utcnow()
     today = today_local()
     reminders = []
