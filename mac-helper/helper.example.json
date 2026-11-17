@@ -1,0 +1,31 @@
+{
+  "server": {
+    "url": "https://organizer.example.com",
+    "token": null,
+    "timeout_seconds": 30
+  },
+  "bundle_id": "com.lifeorganizerformac.helper",
+  "launch_agent_label": null,
+  "keychain": {
+    "service": null,
+    "account": "ingest-token"
+  },
+  "host": null,
+  "heartbeat_seconds": 900,
+  "calendar": {
+    "enabled": true,
+    "interval_seconds": 300,
+    "past_days": 365,
+    "future_days": 365,
+    "debounce_seconds": 5
+  },
+  "reminders": {
+    "enabled": true,
+    "apply_ops": true,
+    "snapshot_seconds": 180,
+    "ops_poll_seconds": 30,
+    "completed_days": 30,
+    "alarm_at_due_time": true
+  },
+  "log_path": null
+}

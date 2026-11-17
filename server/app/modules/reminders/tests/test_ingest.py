@@ -155,3 +155,11 @@ def test_a_bad_push_is_refused_and_keeps_the_mirror(client, helper):
     bad = push_body([GROCERIES], [a_reminder("r1", "L-groceries", "Eggs", priority=7)])
     assert helper.post(PUSH, json=bad).status_code == 422
     assert titles(client) == ["Eggs"]
+
+
+def test_auth_is_checked_before_the_body(client, token_client, helper):
+    # The Mac helper's `doctor` checks its token by posting {}: 401/403 mean a bad token, 422 a
+    # good one.
+    assert TestClient(client.app).post("/api/ingest/calendar", json={}).status_code == 401
+    assert token_client(["api"]).post("/api/ingest/calendar", json={}).status_code == 403
+    assert helper.post("/api/ingest/calendar", json={}).status_code == 422
