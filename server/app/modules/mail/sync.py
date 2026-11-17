@@ -210,9 +210,14 @@ def _failed(session: Session, account: MailAccount, key: str, message: str) -> N
 
 
 def prune_removed_accounts(session: Session, active: list[MailAccount]) -> int:
-    """Drop the mirrored headers of accounts that were removed or disabled. Commits."""
+    """Drop the mirrored headers and freshness of accounts that were removed or disabled.
+    Commits."""
     keep = [a.id for a in active]
     result = session.execute(delete(MailMessage).where(MailMessage.account_id.not_in(keep)))
+    live = {freshness_key(account_id) for account_id in keep}
+    for key in freshness.registered_sources():
+        if key.startswith("mail_") and key not in live:
+            freshness.forget_source(session, key)
     session.commit()
     return int(result.rowcount or 0)  # type: ignore[attr-defined]
 

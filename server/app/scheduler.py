@@ -7,7 +7,6 @@ calls it at startup when `SCHEDULER_ENABLED` is true (it is off in tests):
     from sqlalchemy.orm import Session, sessionmaker
 
     from app.config import Settings
-from app.timeutil import local_tz
     from app.db import session_scope
     from app.timeutil import utcnow
 

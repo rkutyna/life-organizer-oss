@@ -151,6 +151,8 @@ def test_accounts_are_kept_apart_and_removed_ones_pruned(
     sync_all(session, settings, factory=factory_for(*fakes))
 
     assert [(r.account_id, r.remote_id) for r in rows(session)] == [(imap_account.id, "7:1")]
+    assert f"mail_{other.id}" not in freshness.registered_sources()
+    assert f"mail_{imap_account.id}" in freshness.registered_sources()
 
 
 def test_one_failing_account_does_not_stop_the_others(
