@@ -37,6 +37,15 @@ without the token its toolsets need, and names the variable to set. `ORGANIZER_U
 organizer's address (default `http://localhost:8600`; set it if you changed `ORGANIZER_PORT` or
 reach the organizer elsewhere); `ORGANIZER_TIMEOUT` is in seconds (default 15).
 
+**An organizer behind Cloudflare Access.** Access stops a client that can't sign in with a
+browser. Give the MCP server a Cloudflare Access service token
+([CLOUDFLARE.md](CLOUDFLARE.md), step 5) in `ORGANIZER_CF_ACCESS_CLIENT_ID` and
+`ORGANIZER_CF_ACCESS_CLIENT_SECRET`. With both set, every request to the organizer carries them
+as `CF-Access-Client-Id` and `CF-Access-Client-Secret`, beside the API token. Set both or
+neither: with one, the server refuses to start and names the other. A call that Access redirects
+to its sign-in page fails with a message saying which settings to check. The secret is never
+logged.
+
 ### Checking it without Claude
 
 From `mcp/`, with a token from Settings → API tokens:
@@ -55,19 +64,28 @@ You need [uv](https://docs.astral.sh/uv/) and a checkout of this repo. Register 
 for your user, so the token stays out of any project's files:
 
 ```bash
-claude mcp add --transport stdio --scope user \
-  --env ORGANIZER_URL=https://organizer.example.com \
+claude mcp add --env ORGANIZER_URL=https://organizer.example.com \
   --env ORGANIZER_TOKEN=<api token> \
+  --transport stdio --scope user \
   organizer -- uv run --directory /path/to/organizer/mcp organizer-mcp
 ```
+
+Keep another option between the last `--env` and the server's name: directly after `--env`,
+Claude Code reads the name as one more variable and rejects it
+([Claude Code MCP docs](https://code.claude.com/docs/en/mcp)). `ORGANIZER_URL` must be an
+address the server can reach: `http://localhost:8600` on the organizer's own machine, its
+Tailscale address, or a hostname behind Cloudflare Access together with a service token
+(add `--env ORGANIZER_CF_ACCESS_CLIENT_ID=<client id>` and
+`--env ORGANIZER_CF_ACCESS_CLIENT_SECRET=<client secret>`, see above). Check it with
+`claude mcp list`, which shows `✔ Connected`.
 
 For mail, add a second server with its own token:
 
 ```bash
-claude mcp add --transport stdio --scope user \
-  --env ORGANIZER_URL=https://organizer.example.com \
+claude mcp add --env ORGANIZER_URL=https://organizer.example.com \
   --env ORGANIZER_MCP_TOOLSETS=mail \
   --env ORGANIZER_MAIL_TOKEN=<mail token> \
+  --transport stdio --scope user \
   organizer-mail -- uv run --directory /path/to/organizer/mcp organizer-mcp
 ```
 
@@ -92,46 +110,37 @@ committed:
 ## claude.ai (remote connector)
 
 claude.ai calls custom connectors from Anthropic's cloud, so the endpoint must be reachable
-from the internet. Cloudflare Access does the sign-in (OAuth); the container checks Access's
-signed assertion on every request, and the token it holds limits what it can do.
+from the internet. Cloudflare Access does the sign-in (OAuth, with Managed OAuth); the container
+checks Access's signed assertion on every request, and the token it holds limits what it can
+do. [REMOTE-CONNECTOR.md](REMOTE-CONNECTOR.md) is the complete setup: the Access application,
+the tunnel route, `.env`, testing with curl, adding the connector in Claude, tool permissions,
+revoking and troubleshooting.
 
 ```
 claude.ai ──HTTPS──▶ Cloudflare Access (Managed OAuth, your email only)
                        │ tunnel, adds Cf-Access-Jwt-Assertion
                        ▼
-          127.0.0.1:8601  organizer-mcp   (checks Host and the assertion, else 401/421)
+          organizer-mcp:8601   (checks Host and the assertion, else 421/401)
                        │ Authorization: Bearer <api token, author claude_remote>
                        ▼
           organizer:8600  (the compose network)
 ```
 
-1. **Token.** In Settings → API tokens, make a token with scope `api` and author
-   `claude_remote`. Put it in `.env` as `ORGANIZER_MCP_TOKEN`.
-2. **Access application.** In Cloudflare Zero Trust → Access → Applications, add a
-   self-hosted application for `organizer-mcp.example.com`, with a policy that allows only your
-   email. Under its advanced settings, turn **Managed OAuth** on and allow the redirect URI
-   `https://claude.ai/api/mcp/auth_callback`. Copy its **Application Audience (AUD) tag**.
-3. **Tunnel.** Add a public hostname `organizer-mcp.example.com` to your Cloudflare Tunnel,
-   pointing at `http://127.0.0.1:8601` (or `http://organizer-mcp:8601` if `cloudflared` runs on
-   the compose network). Never point it at the organizer's own port for this hostname.
-4. **Settings.** In `.env`, uncomment and fill in the MCP block from `.env.example`:
-   `CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com`, `CF_ACCESS_AUD`, `MCP_PUBLIC_HOST`
-   and `MCP_ALLOWED_EMAIL`. Then run `docker compose --profile mcp up -d --build`.
-5. **Check.** `curl -si http://127.0.0.1:8601/mcp` on the host answers 421 (wrong Host), and
-   `curl -si https://organizer-mcp.example.com/mcp` from anywhere answers 401 until you sign in.
-6. **claude.ai.** Settings → Connectors → Add custom connector, with the URL
-   `https://organizer-mcp.example.com/mcp`. Sign in through Access. If authorization fails,
-   add it again with the bare `https://organizer-mcp.example.com`; the server answers at both.
-
-Optionally, add a Cloudflare WAF rule that blocks `/` and `/mcp` on that hostname from outside
-Anthropic's published egress range (see Claude's connector docs). `docker compose logs
-organizer-mcp` shows every refusal and its reason.
-
-**Mail as a connector.** The `organizer-mcp-mail` service (profile `mcp-mail`) is the same image
-fixed to the mail toolset, read-only. Give it its own hostname (`MCP_MAIL_PUBLIC_HOST`), its own
-Access application (`MCP_MAIL_CF_ACCESS_AUD`), its own tunnel route to `127.0.0.1:8602`, and a
-`mail`-scope token made with author `claude_remote` (`ORGANIZER_MCP_MAIL_TOKEN`). Add it to
-claude.ai as a second connector, and switch it on only in the chats that need mail.
+In short:
+- **Compose profiles.** `remote-mcp` starts `organizer-mcp`; `remote-mcp-mail` starts
+  `organizer-mcp-mail`, the separate mail connector. Switch them on with
+  `COMPOSE_PROFILES=remote-mcp` (comma-separated) in `.env`. The `cloudflare` profile runs
+  `cloudflared` in the same project ([CLOUDFLARE.md](CLOUDFLARE.md)).
+- **Settings** (`.env.example` lists them): `ORGANIZER_MCP_TOKEN` (scope `api`, author
+  `claude_remote`), `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`, `MCP_PUBLIC_HOST`,
+  `MCP_ALLOWED_EMAIL`; for mail, `ORGANIZER_MCP_MAIL_TOKEN`, `MCP_MAIL_PUBLIC_HOST` and
+  `MCP_MAIL_CF_ACCESS_AUD`. A container with a setting missing exits and names it.
+- **Ports.** The connectors listen on the host's loopback at `MCP_PORT` (8601) and
+  `MCP_MAIL_PORT` (8602), and on the compose network as `organizer-mcp:8601` and
+  `organizer-mcp-mail:8601`. Never route a connector's hostname to the organizer's port.
+- **Check.** `curl -si -X POST http://127.0.0.1:8601/mcp -H 'Host: <MCP_PUBLIC_HOST>'` answers
+  401 without an Access assertion, and 421 with any other Host. `docker compose logs
+  organizer-mcp` shows every refusal and its reason.
 
 ## The mail safety rule
 

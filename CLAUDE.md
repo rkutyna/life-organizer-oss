@@ -1,4 +1,16 @@
-# CLAUDE.md — working in this repo
+# CLAUDE.md
+
+## Installing or setting up the organizer
+
+If the user wants to **install, set up, deploy or connect** Life Organizer for Mac (rather than
+develop it), follow [`docs/INSTALL-WITH-CLAUDE.md`](docs/INSTALL-WITH-CLAUDE.md) step by step.
+Its rules come first: the human chooses and types every password, pastes every token and
+approves every consent screen and Cloudflare or Claude dashboard change; never print a secret.
+The developer rules below are for changing the code.
+
+---
+
+# Working in this repo (developers)
 
 Read `docs/PLAN.md` first. This repo will become public: it is a self-hosted, single-user
 organizer (calendar, reminders, job tracker, mail) extracted from a private personal organizer.

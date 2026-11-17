@@ -40,7 +40,12 @@ def client() -> OrganizerClient:
     if _client is None:
         settings = load_settings()
         _client = OrganizerClient(
-            settings.url, settings.timeout, token=settings.token, mail_token=settings.mail_token
+            settings.url,
+            settings.timeout,
+            token=settings.token,
+            mail_token=settings.mail_token,
+            cf_access_client_id=settings.cf_access_client_id,
+            cf_access_client_secret=settings.cf_access_client_secret,
         )
     return _client
 
