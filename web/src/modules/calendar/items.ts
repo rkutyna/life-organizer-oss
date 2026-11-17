@@ -6,6 +6,15 @@ import { toDay } from "@/lib/dates";
 /** Weeks start on Monday, so the weekend sits together at the end. */
 export const WEEK_STARTS_ON = 1 as const;
 
+/**
+ * The key an item is shown or hidden by: its own calendar when it names one (connected
+ * calendars send `meta.calendar_key`), else its source.
+ */
+export function toggleKey(item: CalendarItem): string {
+  const key = item.meta?.calendar_key;
+  return typeof key === "string" && key ? key : item.source;
+}
+
 /** Start/end of an item as local Dates. All-day values are "YYYY-MM-DD" (end exclusive). */
 export function itemBounds(item: CalendarItem): { start: Date; end: Date } {
   const start = parseISO(item.start);
@@ -30,7 +39,7 @@ export function itemDays(item: CalendarItem): string[] {
 
 export interface DaySummary {
   count: number;
-  /** source key -> color, in first-seen order. */
+  /** toggle key (source or calendar) -> color, in first-seen order. */
   sources: Map<string, string>;
   titles: string[];
 }
@@ -46,7 +55,8 @@ export function summarizeByDay(items: CalendarItem[]): Map<string, DaySummary> {
         byDay.set(day, summary);
       }
       summary.count += 1;
-      if (!summary.sources.has(item.source)) summary.sources.set(item.source, item.color);
+      const key = toggleKey(item);
+      if (!summary.sources.has(key)) summary.sources.set(key, item.color);
       if (summary.titles.length < 6) summary.titles.push(item.title);
     }
   }

@@ -65,6 +65,16 @@ def registered_sources() -> dict[str, FreshnessSource]:
     return dict(_SOURCES)
 
 
+def forget_source(session: Session, key: str) -> None:
+    """Drop a source that no longer exists (e.g. a removed account) and its status row.
+
+    Does not commit."""
+    _SOURCES.pop(key, None)
+    row = session.get(SourceStatus, key)
+    if row is not None:
+        session.delete(row)
+
+
 def mark_success(session: Session, source: str, at: datetime | None = None) -> None:
     """Record a successful sync of `source` and commit the session."""
     when = at or utcnow()

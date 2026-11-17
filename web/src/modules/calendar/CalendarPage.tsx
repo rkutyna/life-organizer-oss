@@ -24,6 +24,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import type { CalendarItem } from "@/api/client";
 import { itemColor } from "@/app/tokens";
@@ -45,7 +46,8 @@ import { cn } from "@/lib/utils";
 import { useCalendarItems, useCalendarSources } from "./api";
 import { CalendarsMenu } from "./CalendarsMenu";
 import { ItemDetail } from "./ItemDetail";
-import { WEEK_STARTS_ON } from "./items";
+import { EXTERNAL_SOURCE, useCalendarGroups, useSyncNow } from "./externalApi";
+import { toggleKey, WEEK_STARTS_ON } from "./items";
 import { YearView } from "./YearView";
 
 type CalendarView = "day" | "week" | "month" | "year";
@@ -133,9 +135,16 @@ export default function CalendarPage() {
       : fcRange;
   const items = useCalendarItems(range);
   const sources = useCalendarSources();
+  const groups = useCalendarGroups();
+  const syncNow = useSyncNow();
+  // Connected calendars are listed one by one, under their accounts, instead of as one source.
+  const plainSources = useMemo(
+    () => (sources.data ?? []).filter((source) => source.key !== EXTERNAL_SOURCE),
+    [sources.data],
+  );
 
   const visibleItems = useMemo(
-    () => (items.data?.items ?? []).filter((item) => !hidden.includes(item.source)),
+    () => (items.data?.items ?? []).filter((item) => !hidden.includes(toggleKey(item))),
     [items.data, hidden],
   );
   const events = useMemo(() => visibleItems.map(toEvent), [visibleItems]);
@@ -190,10 +199,22 @@ export default function CalendarPage() {
         title={title(view, date)}
         titleExtra={
           <CalendarsMenu
-            sources={sources.data ?? []}
+            sources={plainSources}
+            groups={groups.data ?? []}
             hidden={hidden}
             onToggle={toggleSource}
             onShowAll={showAllSources}
+            onSync={() =>
+              syncNow.mutate(undefined, {
+                onSuccess: (outcomes) => {
+                  const failed = outcomes.filter((o) => !o.ok).length;
+                  if (failed) toast.error(`${failed} account${failed === 1 ? "" : "s"} could not sync`);
+                  else toast.success("Calendars synced");
+                },
+                onError: (err) => toast.error(`Could not sync: ${err.message}`),
+              })
+            }
+            syncing={syncNow.isPending}
           />
         }
         actions={
