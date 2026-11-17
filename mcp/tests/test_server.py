@@ -12,7 +12,18 @@ from support import FakeOrganizer
 
 from organizer_mcp import server, toolsets
 
-EXPECTED_TOOLS = ["calendar", "calendar_sources", "emails", "email"]
+EXPECTED_TOOLS = [
+    "calendar",
+    "calendar_sources",
+    "emails",
+    "email",
+    "reminders",
+    "reminder_lists",
+    "add_reminder",
+    "complete_reminder",
+    "update_reminder",
+]
+REMINDER_TOOLS = EXPECTED_TOOLS[4:]
 
 
 def listed() -> dict[str, Any]:
@@ -24,7 +35,7 @@ def test_all_tools_are_registered_in_order_and_described() -> None:
     assert list(tools) == EXPECTED_TOOLS
     for name, tool in tools.items():
         assert tool.description and len(tool.description) > 60, name
-        assert tool.annotations.readOnlyHint is True, name
+        assert tool.annotations.readOnlyHint is (name not in toolsets.WRITE_TOOLS), name
 
 
 def test_instructions_name_no_one() -> None:
@@ -45,8 +56,16 @@ def test_serve_only_removes_the_tools_left_out(monkeypatch: pytest.MonkeyPatch) 
 
     assert server.serve_only(toolsets.choose(None, False)) == ["emails", "email"]
     assert removed == ["emails", "email"]
-    assert server.serve_only(toolsets.choose("mail", False)) == ["calendar", "calendar_sources"]
-    assert server.serve_only(toolsets.choose("all,mail", False)) == []
+    assert server.serve_only(toolsets.choose("mail", False)) == [
+        "calendar",
+        "calendar_sources",
+        *REMINDER_TOOLS,
+    ]
+    assert server.serve_only(toolsets.choose("all,mail", True), read_only=True) == [
+        "add_reminder",
+        "complete_reminder",
+        "update_reminder",
+    ]
 
 
 @pytest.fixture
@@ -99,7 +118,7 @@ def test_main_for_mail_needs_only_the_mail_token(
 
 @pytest.mark.parametrize(
     ("toolsets_env", "message"),
-    [("email", "unknown toolset"), ("reminders", "not in this version yet")],
+    [("email", "unknown toolset"), ("jobs", "not in this version yet")],
 )
 def test_main_refuses_bad_toolsets(
     run: list[str],

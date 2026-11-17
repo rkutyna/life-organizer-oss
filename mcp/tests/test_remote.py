@@ -18,7 +18,15 @@ from organizer_mcp import remote, server
 from organizer_mcp.config import ConfigError
 
 # What `all` serves: every tool but the opt-in mail toolset's.
-DEFAULT_TOOLS = {"calendar", "calendar_sources"}
+DEFAULT_TOOLS = {
+    "calendar",
+    "calendar_sources",
+    "reminders",
+    "reminder_lists",
+    "add_reminder",
+    "complete_reminder",
+    "update_reminder",
+}
 PUBLIC_HOST = "organizer-mcp.example.com"
 ISSUER = "https://team.cloudflareaccess.com"
 AUD = "aud-tag-0123456789"
@@ -112,7 +120,7 @@ def test_settings_defaults_and_normalising() -> None:
     assert loaded.issuer == ISSUER
     assert loaded.public_host == PUBLIC_HOST
     assert loaded.read_only is False
-    assert loaded.toolsets == {"calendar"}
+    assert loaded.toolsets == {"calendar", "reminders"}
 
 
 def test_settings_for_the_mail_container() -> None:

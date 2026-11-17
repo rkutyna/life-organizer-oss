@@ -11,7 +11,7 @@ them:
 organizer_mcp.toolsets derives the toolsets from these declarations, and a test fails if a
 registered tool is undeclared or a declared one is missing.
 
-Adding a toolset (reminders and jobs are next) is one line: write tools/<name>.py with the
+Adding a toolset (jobs is next) is one line: write tools/<name>.py with the
 declarations above, then add "<name>" to MODULE_NAMES. Order matters: it is the order tools are
 listed in, and a module may import an earlier one, never a later one.
 """
@@ -24,6 +24,7 @@ from types import ModuleType
 MODULE_NAMES = (
     "calendar",
     "mail",
+    "reminders",
 )
 
 MODULES: tuple[ModuleType, ...] = tuple(

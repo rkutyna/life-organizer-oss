@@ -14,11 +14,13 @@ database. It runs two ways:
 |---|---|---|---|
 | `calendar` | `calendar`, `calendar_sources` | `api` | Read-only. Every source merged, with each mirror's freshness. |
 | `mail` | `emails`, `email` | `mail` | Read-only and **opt-in**. See the safety rule below. |
-| `reminders`, `jobs` | | `api` | Coming with those features. Naming them today is a clear startup error. |
+| `reminders` | `reminders`, `reminder_lists`, `add_reminder`, `update_reminder`, `complete_reminder` | `api` | Reads and writes Apple Reminders (through the Mac helper) and Google Tasks; see docs/REMINDERS.md. |
+| `jobs` | | `api` | Coming with that feature. Naming it today is a clear startup error. |
 
 `ORGANIZER_MCP_TOOLSETS` picks what a server serves: `all` (the default) is every toolset except
 `mail`, or give a comma list such as `calendar` or `mail`. `ORGANIZER_MCP_READ_ONLY=1` drops
-every tool that writes.
+every tool that writes. Because `reminders` writes, `all,mail` is refused at startup unless
+`ORGANIZER_MCP_READ_ONLY=1` is set; serve mail from its own server.
 
 ## Tokens
 
