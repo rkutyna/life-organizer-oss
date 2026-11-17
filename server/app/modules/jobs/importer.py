@@ -6,8 +6,9 @@
 2. **Dry run** walks every row with the chosen mapping and reports what a commit would do:
    counts, plus the rows that match records already in the tracker (row number and record id)
    and the rows with problems (row number, field and a code). It writes nothing.
-3. **Commit** does the same walk and writes, as author `system`, in one audit batch, so the
-   report's `batch_id` names every change it made. **Undo** reverts that batch.
+3. **Commit** does the same walk and writes, as the caller's author (the person in the web app,
+   Claude through a token), in one audit batch, so the report's `batch_id` names every change it
+   made. **Undo** reverts that batch.
 
 Reports carry counts, codes, row numbers, field keys and record ids, never cell text.
 
@@ -20,9 +21,17 @@ Matching is on natural keys, so importing the same file twice changes nothing th
   that lead (`promote`) instead of making a second record.
 - a contact is (name, company).
 
+A lead row (no date applied, a lead or dropped status) matches the posting at the company with
+the same title whatever its status, so a lead that has been applied to since is not logged again.
+
 Rows never match records made earlier in the same import, so a dry run and a commit agree. A
 second row with the same key as an earlier one is skipped (`duplicate_row`). Blank cells never
 clear a field. Unmapped columns go into an application's `extra` when `keep_unmapped` is on.
+
+Limits: the file's size (`MAX_BYTES`), rows (`MAX_ROWS`) and columns (`MAX_COLUMNS`), and the csv
+module's 128 KB per cell, refuse the whole file (HTTP 422). Text longer than the REST API takes
+(`MAX_LENGTHS`), more than 30 tags or a future date found are reported per row and leave that
+field out; a too-long company, title or name skips the row.
 """
 
 import csv
@@ -47,14 +56,16 @@ from app.modules.jobs.models import (
     Contact,
     Interview,
 )
+from app.modules.jobs.schemas import MAX_LONG_TEXT, MAX_NAME, MAX_TITLE
 from app.modules.jobs.status_sync import sync_application_status
 from app.timeutil import today_local
 
 Kind = Literal["applications", "contacts"]
 
-AUTHOR = "system"
 MAX_BYTES = 5_000_000
 MAX_ROWS = 10_000
+MAX_COLUMNS = 500
+MAX_HEADER = 200  # characters kept of a header cell
 PREVIEW_ROWS = 20
 MAX_LISTED = 500  # problems and matches listed in a report; the counts are always complete
 
@@ -319,6 +330,22 @@ STATUS_SYNONYMS: dict[str, tuple[str, ...]] = {
 }
 
 
+# The longest text each field takes, as in the REST API (schemas.py and models.py).
+MAX_LENGTHS: dict[str, int] = {
+    "company": MAX_NAME,
+    "title": MAX_TITLE,
+    "name": MAX_NAME,
+    "location": 200,
+    "posting_url": 2000,
+    "source": 200,
+    "role": 200,
+    "email": 320,
+    "profile_url": 500,
+    "next_action": MAX_LONG_TEXT,
+    "notes": MAX_LONG_TEXT,
+}
+
+
 class ImportError_(ValueError):  # noqa: N801  (not the builtin ImportError)
     """The file or the mapping cannot be used at all (HTTP 422)."""
 
@@ -326,33 +353,62 @@ class ImportError_(ValueError):  # noqa: N801  (not the builtin ImportError)
 # --------------------------------------------------------------------------- reading the file
 
 
+def cell(row: list[str], column: int) -> str:
+    """The row's cell in `column`, "" past the row's end (rows are not padded)."""
+    return row[column] if column < len(row) else ""
+
+
 def read_csv(text: str) -> tuple[list[str], list[list[str]]]:
-    """(headers, rows). The first non-blank row is the header; blank rows are dropped, short
-    rows padded. Blank and repeated headers get unique names ("Column 3", "Notes (2)")."""
+    """(headers, rows). The first non-blank row is the header; blank rows are dropped. Cells are
+    stripped and trailing empty cells dropped; rows keep their own length (read them with
+    `cell`), and the headers cover the widest row. Blank and repeated headers get unique names
+    ("Column 3", "Notes (2)"). Refuses a file over MAX_BYTES, MAX_ROWS or MAX_COLUMNS, or one
+    the csv module cannot read (a cell over 128 KB)."""
     if len(text.encode("utf-8", errors="ignore")) > MAX_BYTES:
         raise ImportError_(f"the file is over {MAX_BYTES // 1_000_000} MB")
-    text = text.lstrip("﻿")
+    text = text.lstrip("\ufeff")
     try:
         dialect: Any = csv.Sniffer().sniff(text[:4096], delimiters=",;\t")
     except csv.Error:
         dialect = csv.excel
-    rows = [row for row in csv.reader(io.StringIO(text), dialect) if any(c.strip() for c in row)]
-    if not rows:
+    reader = csv.reader(io.StringIO(text), dialect)
+    raw_headers: list[str] | None = None
+    body: list[list[str]] = []
+    width = 0
+    try:
+        for raw in reader:
+            row = [c.strip() for c in raw]
+            while row and not row[-1]:
+                row.pop()
+            if not row:
+                continue
+            if len(row) > MAX_COLUMNS:
+                raise ImportError_(
+                    f"line {reader.line_num} has more than {MAX_COLUMNS} columns; "
+                    "remove the empty or extra ones"
+                )
+            if raw_headers is None:
+                raw_headers = row
+            elif len(body) >= MAX_ROWS:
+                raise ImportError_(f"the file has more than {MAX_ROWS} rows; split it")
+            else:
+                body.append(row)
+            width = max(width, len(row))
+    except csv.Error as exc:
+        raise ImportError_(
+            f"line {reader.line_num} cannot be read as CSV (a cell over 128 KB, or a broken quote)"
+        ) from exc
+    if raw_headers is None:
         raise ImportError_("the file has no rows")
-    raw_headers, body = rows[0], rows[1:]
-    if len(body) > MAX_ROWS:
-        raise ImportError_(f"the file has more than {MAX_ROWS} rows; split it")
-    width = max(len(raw_headers), *(len(r) for r in body)) if body else len(raw_headers)
     headers: list[str] = []
     seen: Counter[str] = Counter()
     for i in range(width):
-        name = " ".join(raw_headers[i].split()) if i < len(raw_headers) else ""
+        name = " ".join(cell(raw_headers, i).split())[:MAX_HEADER].strip()
         name = name or f"Column {i + 1}"
         seen[name.casefold()] += 1
         if seen[name.casefold()] > 1:
             name = f"{name} ({seen[name.casefold()]})"
         headers.append(name)
-    body = [[c.strip() for c in r] + [""] * (width - len(r)) for r in body]
     return headers, body
 
 
@@ -516,12 +572,12 @@ def _check_spec(session: Session, headers: list[str], spec: Spec) -> None:
         raise ImportError_(f"unknown status(es) in the status map: {', '.join(wrong)}")
 
 
-def run(session: Session, csv_text: str, spec: Spec, *, commit: bool) -> Report:
-    """Walk every row; write only when `commit`. Returns the report."""
+def run(session: Session, csv_text: str, spec: Spec, *, commit: bool, author: str) -> Report:
+    """Walk every row; write only when `commit`, as `author`. Returns the report."""
     headers, rows = read_csv(csv_text)
     _check_spec(session, headers, spec)
     report = Report(kind=spec.kind, committed=commit, rows=len(rows))
-    walker = _Walker(session, headers, spec, report, commit)
+    walker = _Walker(session, headers, spec, report, commit, author)
     if commit:
         with audit.transaction(session) as batch_id:
             walker.walk(rows)
@@ -534,9 +590,16 @@ def run(session: Session, csv_text: str, spec: Spec, *, commit: bool) -> Report:
 
 class _Walker:
     def __init__(
-        self, session: Session, headers: list[str], spec: Spec, report: Report, commit: bool
+        self,
+        session: Session,
+        headers: list[str],
+        spec: Spec,
+        report: Report,
+        commit: bool,
+        author: str,
     ):
         self.session = session
+        self.author = author
         self.headers = headers
         self.spec = spec
         self.report = report
@@ -565,8 +628,9 @@ class _Walker:
 
     def _values(self, number: int, cells: list[str]) -> dict[str, Any] | None:
         values: dict[str, Any] = {}
+        required = {t.key for t in TARGETS[self.spec.kind] if t.required}
         for key, column in self.columns.items():
-            raw = cells[column]
+            raw = cell(cells, column)
             if not raw:
                 continue
             kind = self.types[key]
@@ -574,6 +638,9 @@ class _Walker:
                 parsed = parse_date(raw, day_first=self.spec.day_first)
                 if parsed is None:
                     self.report.problem(number, "bad_date", key, skip=False)
+                    continue
+                if key == "found_on" and parsed > today_local():
+                    self.report.problem(number, "future_date", key, skip=False)
                     continue
                 values[key] = parsed
             elif kind == "status":
@@ -587,7 +654,16 @@ class _Walker:
                     continue
                 values[key] = status
             elif kind == "tags":
-                values[key] = service.normalize_tags(split_tags(raw))
+                try:
+                    values[key] = service.normalize_tags(split_tags(raw))
+                except ValueError:
+                    self.report.problem(number, "too_many_tags", key, skip=False)
+            elif len(raw) > MAX_LENGTHS.get(key, MAX_LONG_TEXT):
+                if key in required:
+                    self.report.problem(number, "too_long", key, skip=True)
+                    self.report.skipped += 1
+                    return None
+                self.report.problem(number, "too_long", key, skip=False)
             else:
                 values[key] = raw
         for key in TARGETS[self.spec.kind]:
@@ -607,20 +683,30 @@ class _Walker:
             self.report.companies_created += 1
             created = None
             if self.commit:
-                created, _ = service.company_for_name(self.session, name, AUTHOR)
+                created, _ = service.company_for_name(self.session, name, self.author)
             self.new_companies[folded] = created
         made = self.new_companies[folded]
         return (made.id if made is not None else None), folded
 
-    def _diff(self, record: Any, values: dict[str, Any], fields: tuple[str, ...]) -> dict[str, Any]:
+    def _merged_tags(self, number: int, record: Any, new: list[str]) -> list[str] | None:
+        """The record's tags with the row's added, or None (reported) past the tag limit."""
+        try:
+            return service.normalize_tags([*(record.tags or []), *new])
+        except ValueError:
+            self.report.problem(number, "too_many_tags", "tags", skip=False)
+            return None
+
+    def _diff(
+        self, number: int, record: Any, values: dict[str, Any], fields: tuple[str, ...]
+    ) -> dict[str, Any]:
         changes = {}
         for key in fields:
             if key not in values:
                 continue
             new = values[key]
             if key == "tags":
-                merged = service.normalize_tags([*(record.tags or []), *new])
-                if merged != (record.tags or []):
+                merged = self._merged_tags(number, record, new)
+                if merged is not None and merged != (record.tags or []):
                     changes[key] = merged
             elif getattr(record, key) != new:
                 changes[key] = new
@@ -655,7 +741,12 @@ class _Walker:
         self.seen_keys.add(key)
         extra = {}
         if self.spec.keep_unmapped:
-            extra = {self.headers[i]: cells[i] for i in self.unmapped if cells[i]}
+            for i in self.unmapped:
+                value = cell(cells, i)
+                if len(value) > MAX_LONG_TEXT:
+                    report.problem(number, "too_long", "extra", skip=False)
+                elif value:
+                    extra[self.headers[i]] = value
 
         existing = self._existing_application(company_id, title, applied, is_lead)
         if existing is not None:
@@ -667,14 +758,16 @@ class _Walker:
         if len(leads) == 1:
             report.promote += 1
             report.match(number, leads[0].id, "promote")
+            fields = {k: values[k] for k in self.APP_FIELDS if k in values}
+            if "tags" in fields and self._merged_tags(number, leads[0], fields["tags"]) is None:
+                del fields["tags"]
             if self.commit:
-                fields = {k: values[k] for k in self.APP_FIELDS if k in values}
                 if extra:
                     fields["extra"] = extra
                 if applied:
                     fields["date_applied"] = applied
                 service.promote_lead(
-                    self.session, leads[0], fields, AUTHOR, status=statuses.APPLIED
+                    self.session, leads[0], fields, self.author, status=statuses.APPLIED
                 )
                 self._add_history(leads[0], values, status, applied)
             return
@@ -692,17 +785,20 @@ class _Walker:
                 date_applied=applied,
                 extra=extra,
             ),
-            AUTHOR,
+            self.author,
         )
         self.created["applications"].add(application.id)
         if is_lead:
-            found = values.get("found_on") or values.get("status_date") or today_local()
+            # The status date stands in for the day found, but never in the future.
+            found = values.get("found_on") or min(
+                values.get("status_date") or today_local(), today_local()
+            )
             self._event(application, statuses.LEAD, found)
             if status == statuses.DROPPED:
                 self._event(application, statuses.DROPPED, values.get("status_date") or found)
         else:
             self._add_history(application, values, status, applied)
-        sync_application_status(self.session, application, AUTHOR)
+        sync_application_status(self.session, application, self.author)
 
     def _postings(self, company_id: int, title: str) -> list[Application]:
         wanted = fold_title(title)
@@ -720,10 +816,14 @@ class _Walker:
     ) -> Application | None:
         if company_id is None:
             return None
-        for row in self._postings(company_id, title):
+        postings = self._postings(company_id, title)
+        for row in postings:
             row_is_lead = row.status in (statuses.LEAD, statuses.DROPPED)
             if row.date_applied == applied and row_is_lead == is_lead:
                 return row
+        if is_lead and postings:
+            # A lead row for a posting submitted since: it is tracked, so never a second lead.
+            return postings[0]
         return None
 
     def _history(self, application_id: int) -> set[str]:
@@ -752,10 +852,17 @@ class _Walker:
         self, application: Application, values: dict, status: str, applied: dt.date | None
     ) -> None:
         start = applied or values.get("status_date") or today_local()
+        found = [
+            on
+            for on, _, s in service.history_keys(self.session, application.id)
+            if s == statuses.LEAD
+        ]
+        if found:  # never before the day a promoted lead was found (service.history_problem)
+            start = max(start, *found)
         last = max(values.get("status_date") or start, start)
         for s in self._missing_history(application, values, status):
             self._event(application, s, last if s == status else start)
-        sync_application_status(self.session, application, AUTHOR)
+        sync_application_status(self.session, application, self.author)
 
     def _event(self, application: Application, status: str, on: dt.date) -> None:
         audit.create(
@@ -763,18 +870,21 @@ class _Walker:
             ApplicationStatusEvent(
                 application_id=application.id, status=status, on_date=on, note=""
             ),
-            AUTHOR,
+            self.author,
         )
 
     def _update_application(
         self, number: int, existing: Application, values: dict, status: str, extra: dict
     ) -> None:
-        changes = self._diff(existing, values, self.APP_FIELDS)
+        changes = self._diff(number, existing, values, self.APP_FIELDS)
         merged_extra = {**(existing.extra or {}), **extra}
         if extra and merged_extra != (existing.extra or {}):
             changes["extra"] = merged_extra
         is_lead = existing.status in (statuses.LEAD, statuses.DROPPED)
-        new_history = [] if is_lead else self._missing_history(existing, values, status)
+        row_is_lead = self.defs[status].kind in ("lead", "dropped")
+        new_history = (
+            [] if is_lead or row_is_lead else self._missing_history(existing, values, status)
+        )
         if not changes and not new_history:
             self.report.unchanged += 1
             self.report.match(number, existing.id, "unchanged")
@@ -783,7 +893,7 @@ class _Walker:
         self.report.match(number, existing.id, "update")
         if self.commit:
             if changes:
-                audit.update(self.session, existing, changes, AUTHOR)
+                audit.update(self.session, existing, changes, self.author)
             if new_history:
                 self._add_history(existing, values, status, existing.date_applied)
 
@@ -822,7 +932,7 @@ class _Walker:
             ]
             existing = matches[0] if matches else None
         if existing is not None:
-            changes = self._diff(existing, values, self.CONTACT_FIELDS)
+            changes = self._diff(number, existing, values, self.CONTACT_FIELDS)
             if not changes:
                 report.unchanged += 1
                 report.match(number, existing.id, "unchanged")
@@ -830,13 +940,13 @@ class _Walker:
             report.update += 1
             report.match(number, existing.id, "update")
             if self.commit:
-                audit.update(self.session, existing, changes, AUTHOR)
+                audit.update(self.session, existing, changes, self.author)
             return
         report.create += 1
         if self.commit:
             fields = {k: values[k] for k in self.CONTACT_FIELDS if k in values}
             contact = audit.create(
-                self.session, Contact(**fields, name=name, company_id=company_id), AUTHOR
+                self.session, Contact(**fields, name=name, company_id=company_id), self.author
             )
             self.created["contacts"].add(contact.id)
 
@@ -860,7 +970,7 @@ def preview(
     values: list[dict[str, Any]] = []
     value_columns = [headers.index(h) for h, t in chosen.items() if t in ("status", "reached")]
     if value_columns:
-        counts = Counter(r[c] for r in rows for c in value_columns if r[c])
+        counts = Counter(cell(r, c) for r in rows for c in value_columns if cell(r, c))
         by_fold: dict[str, tuple[str, int]] = {}
         for value, n in counts.most_common():
             folded = fold_name(value)
@@ -874,7 +984,7 @@ def preview(
     return {
         "kind": kind,
         "headers": headers,
-        "rows": rows[:PREVIEW_ROWS],
+        "rows": [[cell(r, i) for i in range(len(headers))] for r in rows[:PREVIEW_ROWS]],
         "row_count": len(rows),
         "mapping": chosen,
         "targets": [
@@ -893,7 +1003,7 @@ def _dates_ambiguous(headers, rows, mapping, kind) -> str | None:
     columns = [headers.index(h) for h, t in mapping.items() if t in date_keys]
     for row in rows:
         for column in columns:
-            m = re.match(r"^(\d{1,2})[/.\-](\d{1,2})[/.\-]\d{2,4}$", row[column])
+            m = re.match(r"^(\d{1,2})[/.\-](\d{1,2})[/.\-]\d{2,4}$", cell(row, column))
             if m and int(m[1]) > 12 >= int(m[2]):
                 return "day_first"
     return None
@@ -913,54 +1023,143 @@ _UNDO_TABLES = (
     ApplicationStatusEvent.__tablename__,
     Contact.__tablename__,
     Company.__tablename__,
-    Interview.__tablename__,
 )
 
 
 def undo(session: Session, batch_id: str, author: str) -> UndoReport:
-    """Revert an import's batch, newest change first, in one new batch. A change edited again
-    since (or a record deleted since) is left as it is and counted in `conflicts`."""
-    changes = [
-        c
-        for c in audit.batch_changes(session, batch_id)
-        if c.table_name in _UNDO_TABLES and c.reverts_change_id is None
-    ]
-    if not changes or any(c.author != AUTHOR for c in changes):
+    """Revert an import's batch, newest change first, in one new batch.
+
+    What is undone, and what is left alone and counted in `conflicts`:
+
+    - A record the import created is removed, unless it was changed outside the import since
+      (edited, or for an application given a status change, an interview or a history edit),
+      or, for a company, it has live applications or contacts. An application's status history
+      goes with it; one that stays keeps its whole history.
+    - A field the import changed is set back, unless it has been changed again since. One
+      already back at its old value (a revert hook set it) counts as done.
+
+    The batch must look like an import: creates and updates of companies, applications, status
+    events and contacts, by one author, none of them a revert. The import is not otherwise
+    marked, so any such batch is accepted; undoing it is the same as reverting each of its
+    changes from History.
+    """
+    changes = audit.batch_changes(session, batch_id)
+    if (
+        not changes
+        or len({c.author for c in changes}) != 1
+        or any(
+            c.table_name not in _UNDO_TABLES
+            or c.op not in ("create", "update")
+            or c.reverts_change_id is not None
+            for c in changes
+        )
+    ):
         raise ImportError_("that batch is not an import")
+    created_apps = {
+        int(c.record_id)
+        for c in changes
+        if c.table_name == Application.__tablename__ and c.op == "create"
+    }
     report = UndoReport()
-    with audit.transaction(session):
+    with audit.transaction(session) as undo_batch:
+        own = (batch_id, undo_batch)
         for change in reversed(changes):
-            already = session.scalar(
-                select(audit.ChangeLog.id).where(audit.ChangeLog.reverts_change_id == change.id)
-            )
-            if already is not None:
+            if _reverted(session, change.id) or _goes_with_application(
+                session, change, created_apps
+            ):
                 continue
-            if not _revertible(session, change):
+            state = _undo_state(session, change, own)
+            if state == "conflict":
                 report.conflicts += 1
-                continue
-            audit.revert(session, change.id, author)
-            report.reverted += 1
+            elif state == "revert":
+                audit.revert(session, change.id, author)
+                report.reverted += 1
     return report
 
 
-def _revertible(session: Session, change: audit.ChangeLog) -> bool:
-    """What `audit.revert` would accept: a create whose record is still live (one a revert hook
-    already removed counts as done, not as a conflict), an update whose field still holds the
-    imported value."""
+def _reverted(session: Session, change_id: int) -> bool:
+    found = session.scalar(
+        select(audit.ChangeLog.id).where(audit.ChangeLog.reverts_change_id == change_id)
+    )
+    return found is not None
+
+
+def _goes_with_application(session: Session, change: audit.ChangeLog, created: set[int]) -> bool:
+    """A change to an application the import created, or to its status history: undone (or
+    kept) with the application's create."""
+    if change.table_name == Application.__tablename__:
+        return change.op == "update" and int(change.record_id) in created
+    if change.table_name == ApplicationStatusEvent.__tablename__:
+        event = session.get(
+            ApplicationStatusEvent,
+            int(change.record_id),
+            execution_options={"include_deleted": True},
+        )
+        return event is not None and event.application_id in created
+    return False
+
+
+def _changed_outside(
+    session: Session, table: str, record_ids: list[int], own: tuple[str, ...]
+) -> bool:
+    if not record_ids:
+        return False
+    found = session.scalar(
+        select(audit.ChangeLog.id)
+        .where(
+            audit.ChangeLog.table_name == table,
+            audit.ChangeLog.record_id.in_([str(i) for i in record_ids]),
+            audit.ChangeLog.batch_id.not_in(own),
+        )
+        .limit(1)
+    )
+    return found is not None
+
+
+def _undo_state(
+    session: Session, change: audit.ChangeLog, own: tuple[str, ...]
+) -> Literal["revert", "done", "conflict"]:
+    """What undo does with one change. Checks everything `audit.revert` and the jobs revert
+    hooks would refuse, so a revert started here does not fail halfway."""
     model = audit.model_for_table(change.table_name)
     obj = session.get(model, int(change.record_id), execution_options={"include_deleted": True})
-    if obj is None:
-        return False
-    if obj.deleted_at is not None:
-        return False
-    if change.op == "create":
-        if isinstance(obj, Company):  # a company something was added to since stays
-            return not any(
-                session.scalars(select(model.id).where(model.company_id == obj.id)).first()
-                for model in (Application, Contact)
-            )
-        return True
+    if obj is None or obj.deleted_at is not None:
+        return "conflict"
     if change.op == "update" and change.field is not None:
         current = json.loads(json.dumps(getattr(obj, change.field), default=str))
-        return current == audit.decode_value(change.new_value)
-    return False
+        if current == audit.decode_value(change.new_value):
+            return "revert"
+        if current == audit.decode_value(change.old_value):
+            return "done"
+        return "conflict"
+    if change.op != "create":
+        return "conflict"
+    if _changed_outside(session, change.table_name, [obj.id], own):
+        return "conflict"
+    if isinstance(obj, Company):  # a company something was added to since stays
+        used = any(
+            session.scalars(select(m.id).where(m.company_id == obj.id)).first()
+            for m in (Application, Contact)
+        )
+        return "conflict" if used else "revert"
+    if isinstance(obj, Application):
+        for child in (ApplicationStatusEvent, Interview):
+            ids = list(
+                session.scalars(
+                    select(child.id).where(child.application_id == obj.id),
+                    execution_options={"include_deleted": True},
+                )
+            )
+            if _changed_outside(session, child.__tablename__, ids, own):
+                return "conflict"
+        return "revert"
+    if isinstance(obj, ApplicationStatusEvent):  # added to an application that existed before
+        application = session.get(
+            Application, obj.application_id, execution_options={"include_deleted": True}
+        )
+        if application is None or application.deleted_at is not None:
+            return "conflict"
+        rest = [k for k in service.history_keys(session, application.id) if k[1] != obj.id]
+        if service.history_problem(application.date_applied, rest) is not None:
+            return "conflict"
+    return "revert"

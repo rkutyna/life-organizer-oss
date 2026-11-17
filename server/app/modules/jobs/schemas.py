@@ -15,7 +15,12 @@ from app.modules.jobs.goals import METRICS
 Metric = Literal["applications", "outreach", "leads", "interviews", "events"]
 assert set(METRICS) == set(Metric.__args__)  # type: ignore[attr-defined]
 
-Name = Field(min_length=1, max_length=200)
+# Length limits, shared with the CSV import (importer.py).
+MAX_NAME = 200
+MAX_TITLE = 300
+MAX_LONG_TEXT = 20_000  # notes, next actions, status notes
+
+Name = Field(min_length=1, max_length=MAX_NAME)
 Tags = Field(default_factory=list, description="Free-form labels, e.g. remote or referral")
 
 
@@ -63,7 +68,7 @@ class JobStatusOrder(BaseModel):
 class CompanyBase(BaseModel):
     website: str = Field(default="", max_length=500)
     target: bool = False
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_LONG_TEXT)
     tags: list[str] = Tags
 
 
@@ -80,7 +85,7 @@ class CompanyUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     website: str | None = Field(default=None, max_length=500)
     target: bool | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
     tags: list[str] | None = None
 
 
@@ -110,9 +115,9 @@ class ApplicationFields(BaseModel):
     location: str = Field(default="", max_length=200)
     posting_url: str = Field(default="", max_length=2000)
     source: str = Field(default="", max_length=200, description="Where the posting was found")
-    next_action: str = ""
+    next_action: str = Field(default="", max_length=MAX_LONG_TEXT)
     next_action_due: dt.date | None = None
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_LONG_TEXT)
     tags: list[str] = Tags
 
 
@@ -140,10 +145,14 @@ class ApplicationUpdate(BaseModel):
     location: str | None = Field(default=None, max_length=200)
     posting_url: str | None = Field(default=None, max_length=2000)
     source: str | None = Field(default=None, max_length=200)
-    next_action: str | None = None
+    next_action: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
     next_action_due: dt.date | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
     tags: list[str] | None = None
+    force: bool = Field(
+        default=False,
+        description="Rename an open lead even when the company already tracks that title",
+    )
 
 
 class ApplicationOut(_Record):
@@ -189,7 +198,7 @@ class LeadCreate(ApplicationFields, CompanyRef):
 class JobStatusChange(BaseModel):
     status: str
     on_date: dt.date | None = Field(default=None, description="Defaults to today")
-    note: str = ""
+    note: str = Field(default="", max_length=MAX_LONG_TEXT)
 
 
 class JobApplyIn(BaseModel):
@@ -212,7 +221,7 @@ class StatusEventOut(_Record):
 class StatusEventUpdate(BaseModel):
     status: str | None = None
     on_date: dt.date | None = None
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
 
 
 # --------------------------------------------------------------------------- contacts
@@ -225,9 +234,9 @@ class ContactCreate(CompanyRef):
     profile_url: str = Field(default="", max_length=500)
     contacted_on: dt.date | None = None
     replied_on: dt.date | None = None
-    next_action: str = ""
+    next_action: str = Field(default="", max_length=MAX_LONG_TEXT)
     next_action_due: dt.date | None = None
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_LONG_TEXT)
     tags: list[str] = Tags
 
 
@@ -239,9 +248,9 @@ class ContactUpdate(BaseModel):
     profile_url: str | None = Field(default=None, max_length=500)
     contacted_on: dt.date | None = None
     replied_on: dt.date | None = None
-    next_action: str | None = None
+    next_action: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
     next_action_due: dt.date | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
     tags: list[str] | None = None
 
 
@@ -276,7 +285,7 @@ class InterviewCreate(BaseModel):
     duration_minutes: int | None = Field(default=None, ge=5, le=24 * 60)
     location: str = Field(default="", max_length=500)
     interviewer: str = Field(default="", max_length=200)
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_LONG_TEXT)
 
 
 class InterviewUpdate(BaseModel):
@@ -287,7 +296,7 @@ class InterviewUpdate(BaseModel):
     duration_minutes: int | None = Field(default=None, ge=5, le=24 * 60)
     location: str | None = Field(default=None, max_length=500)
     interviewer: str | None = Field(default=None, max_length=200)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
 
 
 class InterviewOut(_Record):
@@ -317,7 +326,7 @@ class JobEventCreate(BaseModel):
     location: str = Field(default="", max_length=500)
     url: str = Field(default="", max_length=2000)
     attended: bool | None = None
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_LONG_TEXT)
     tags: list[str] = Tags
 
 
@@ -330,7 +339,7 @@ class JobEventUpdate(BaseModel):
     location: str | None = Field(default=None, max_length=500)
     url: str | None = Field(default=None, max_length=2000)
     attended: bool | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_LONG_TEXT)
     tags: list[str] | None = None
 
 

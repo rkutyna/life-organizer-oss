@@ -11,6 +11,12 @@ Leads are a stage of an application (statuses.py), so a posting stays one record
   place (`promote_lead`) instead of making a second record. When several open leads match, none
   is guessed: a new record is made and their ids come back as `lead_candidates`.
 - `apply_lead` submits a lead you already know; `drop_lead` cuts one without applying.
+
+The status history must keep agreeing with the application (`history_problem`): the `lead` event
+comes before every other event and a `dropped` one after every other, an application keeps at
+least one event, and one with a date applied never ends on `lead` or `dropped`. Editing or
+deleting an event (`check_history_edit`) is refused when it would break that, or would turn a lead
+into a submitted application or back (the lead routes and History do that).
 """
 
 import datetime as dt
@@ -117,10 +123,86 @@ def add_status(
         )
     if application.status == statuses.DROPPED:
         raise Conflict(f"application {application.id} is a dropped lead; log a new lead instead")
+    on = on_date or today_local()
+    # A new event sorts after every existing one on the same day, as its id will be the largest.
+    proposed = [*history_keys(session, application.id), (on, _NEXT_ID, target.key)]
+    problem = history_problem(application.date_applied, proposed)
+    if problem is not None:
+        raise Conflict(problem)
     with audit.transaction(session):
-        _event(session, application, target.key, on_date or today_local(), note, author)
+        _event(session, application, target.key, on, note, author)
         sync_application_status(session, application, author)
     return application
+
+
+# (on_date, id, status) of one status event, so a proposed history can be checked before it is
+# written.
+EventKey = tuple[dt.date, int, str]
+_NEXT_ID = 2**62  # stands in for the id of an event not written yet
+
+
+def phase(status: str) -> str:
+    """lead, dropped or submitted (any active or closed status)."""
+    if status in (statuses.LEAD, statuses.DROPPED):
+        return status
+    return "submitted"
+
+
+def history_problem(date_applied: dt.date | None, events: list[EventKey]) -> str | None:
+    """Why this status history would disagree with its application, or None when it is sound."""
+    if not events:
+        return "an application keeps at least one status event"
+    order = [status for _, _, status in sorted(events)]
+    others = [i for i, status in enumerate(order) if status != statuses.LEAD]
+    if others and statuses.LEAD in order[others[0] :]:
+        return "the lead event must stay before every other status change"
+    kept = [i for i, status in enumerate(order) if status != statuses.DROPPED]
+    if kept and statuses.DROPPED in order[: kept[-1]]:
+        return "the dropped event must stay after every other status change"
+    if date_applied is not None and phase(order[-1]) != "submitted":
+        return (
+            f"an application with a date applied cannot end on {order[-1]!r}; revert the "
+            "application's status change from History instead"
+        )
+    return None
+
+
+def history_keys(session: Session, application_id: int) -> list[EventKey]:
+    return [
+        (e.on_date, e.id, e.status)
+        for e in session.scalars(
+            select(ApplicationStatusEvent).where(
+                ApplicationStatusEvent.application_id == application_id
+            )
+        )
+    ]
+
+
+def check_history_edit(
+    session: Session,
+    application: Application,
+    event: ApplicationStatusEvent,
+    changes: dict[str, Any] | None,
+) -> None:
+    """Conflict when editing `event` with `changes` (or deleting it, for None) would break the
+    history's agreement with the application, or move it between lead, dropped and submitted."""
+    proposed: list[EventKey] = []
+    for key in history_keys(session, application.id):
+        if key[1] == event.id:
+            if changes is None:
+                continue
+            key = (changes.get("on_date", key[0]), key[1], changes.get("status", key[2]))
+        proposed.append(key)
+    problem = history_problem(application.date_applied, proposed)
+    if problem is None:
+        before, after = phase(application.status), phase(max(proposed)[2])
+        if before != after:
+            problem = (
+                f"this would make the application {after} instead of {before}; use apply or "
+                "drop, or revert the change from History"
+            )
+    if problem is not None:
+        raise Conflict(problem)
 
 
 # --------------------------------------------------------------------------- applications
@@ -194,6 +276,21 @@ def promote_lead(
     return lead
 
 
+def check_posting_free(
+    session: Session, company_id: int, title: str, *, exclude_id: int | None = None
+) -> None:
+    """Conflict when the company already tracks this posting (a lead or an application with the
+    same folded title). Dropped leads do not count."""
+    for row in same_posting(session, company_id, title):
+        if row.id != exclude_id and row.status != statuses.DROPPED:
+            kind = "lead" if row.status == statuses.LEAD else "application"
+            raise Conflict(
+                f"{kind} {row.id} at this company already has this title "
+                f"({row.title!r}, status {row.status}); force=true logs a new lead anyway",
+                row.id,
+            )
+
+
 def create_lead(
     session: Session,
     fields: dict[str, Any],
@@ -206,14 +303,7 @@ def create_lead(
     dated found_on (default today). Refused when the posting is already tracked (see the module
     docstring)."""
     if not force:
-        for row in same_posting(session, fields["company_id"], fields["title"]):
-            if row.status != statuses.DROPPED:
-                kind = "lead" if row.status == statuses.LEAD else "application"
-                raise Conflict(
-                    f"{kind} {row.id} at this company already has this title "
-                    f"({row.title!r}, status {row.status}); force=true logs a new lead anyway",
-                    row.id,
-                )
+        check_posting_free(session, fields["company_id"], fields["title"])
     found_on = found_on or today_local()
     if found_on > today_local():
         raise ValueError("found_on cannot be in the future")

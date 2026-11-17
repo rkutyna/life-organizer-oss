@@ -9,6 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app import audit
 from app.deps import AuthorDep, SessionDep
 from app.modules.jobs import importer
 
@@ -70,7 +71,7 @@ class JobsImportProblem(BaseModel):
     row: int = Field(description="Row number in the file; the header is row 1")
     code: str = Field(
         description="missing_company, missing_title, missing_name, unknown_status, bad_date, "
-        "duplicate_row"
+        "future_date, too_long, too_many_tags, duplicate_row"
     )
     field: str | None
     skipped: bool = Field(description="The row was left out (otherwise only the field was)")
@@ -128,20 +129,24 @@ def import_preview(payload: JobsImportPreviewIn, session: SessionDep) -> JobsImp
 
 
 @router.post("/dry-run", response_model=JobsImportReport)
-def import_dry_run(payload: JobsImportSpec, session: SessionDep) -> JobsImportReport:
+def import_dry_run(
+    payload: JobsImportSpec, session: SessionDep, author: AuthorDep
+) -> JobsImportReport:
     """What a commit would do: counts, matched records and problems. Writes nothing."""
     try:
-        report = importer.run(session, payload.csv, _spec(payload), commit=False)
+        report = importer.run(session, payload.csv, _spec(payload), commit=False, author=author)
     except importer.ImportError_ as exc:
         raise HTTPException(422, str(exc)) from exc
     return JobsImportReport.model_validate(report, from_attributes=True)
 
 
 @router.post("/commit", response_model=JobsImportReport)
-def import_commit(payload: JobsImportSpec, session: SessionDep) -> JobsImportReport:
-    """Import: every write as author `system`, in one audit batch (`batch_id`)."""
+def import_commit(
+    payload: JobsImportSpec, session: SessionDep, author: AuthorDep
+) -> JobsImportReport:
+    """Import: every write under the caller's author, in one audit batch (`batch_id`)."""
     try:
-        report = importer.run(session, payload.csv, _spec(payload), commit=True)
+        report = importer.run(session, payload.csv, _spec(payload), commit=True, author=author)
     except importer.ImportError_ as exc:
         raise HTTPException(422, str(exc)) from exc
     return JobsImportReport.model_validate(report, from_attributes=True)
@@ -156,4 +161,6 @@ def import_undo(
         result = importer.undo(session, payload.batch_id, author)
     except importer.ImportError_ as exc:
         raise HTTPException(422, str(exc)) from exc
+    except audit.RevertConflict as exc:  # nothing was reverted: the undo is one transaction
+        raise HTTPException(409, str(exc)) from exc
     return JobsImportUndoOut(reverted=result.reverted, conflicts=result.conflicts)

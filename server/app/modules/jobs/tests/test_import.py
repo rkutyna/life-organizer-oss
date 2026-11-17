@@ -101,12 +101,12 @@ def test_dry_run_reports_counts_and_codes_without_cell_text(client):
     assert client.get("/api/jobs/applications", params={"leads": "include"}).json() == []
 
 
-def test_commit_writes_as_system_in_one_batch_and_is_idempotent(client, session):
+def test_commit_writes_as_the_caller_in_one_batch_and_is_idempotent(client, session):
     status_map = {"Mystery value": "screen"}
     report = client.post("/api/jobs/import/commit", json=spec(status_map=status_map)).json()
     assert report["committed"] is True and report["create"] == 6
     batch = audit.batch_changes(session, report["batch_id"])
-    assert batch and {c.author for c in batch} == {"system"}
+    assert batch and {c.author for c in batch} == {"me"}
 
     apps = client.get("/api/jobs/applications", params={"leads": "include"}).json()
     by_title = {a["title"]: a for a in apps}
@@ -207,11 +207,15 @@ def test_undo_reverts_the_import(client, session):
     left = client.get("/api/jobs/applications", params={"leads": "include"}).json()
     assert [a["id"] for a in left] == [existing["id"]]
     assert [c["name"] for c in client.get("/api/jobs/companies").json()] == ["Acme Corp"]
-    # Undoing twice does nothing more, and a non-import batch is refused.
+    # Undoing twice does nothing more, and a batch no import writes (a delete, an undo) is
+    # refused.
     again = client.post("/api/jobs/import/undo", json={"batch_id": report["batch_id"]}).json()
     assert again["reverted"] == 0
+    client.delete(f"/api/jobs/applications/{existing['id']}")
     other = audit.history(session, "jobs_applications", existing["id"])[0].batch_id
     assert client.post("/api/jobs/import/undo", json={"batch_id": other}).status_code == 422
+    undo_batch = audit.history(session, "jobs_companies")[0].batch_id
+    assert client.post("/api/jobs/import/undo", json={"batch_id": undo_batch}).status_code == 422
 
 
 @pytest.mark.parametrize("size", [5_000_001])

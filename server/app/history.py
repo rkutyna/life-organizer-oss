@@ -9,6 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 
 from app import audit
 from app.deps import AuthorDep, SessionDep
@@ -70,4 +71,8 @@ def revert_change(change_id: int, session: SessionDep, author: AuthorDep) -> lis
         raise HTTPException(404, str(exc)) from exc
     except audit.RevertConflict as exc:
         raise HTTPException(409, str(exc)) from exc
+    except IntegrityError as exc:  # e.g. restoring a record whose unique name is taken again
+        raise HTTPException(
+            409, "a live record already has this record's unique value; change that one first"
+        ) from exc
     return [ChangeOut.from_row(row) for row in rows]
