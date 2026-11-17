@@ -374,7 +374,7 @@ app isn't available in this version and skip the step.
 |---|---|
 | Xcode 26 or later installed, `xcode-select -p` pointing at it | **[HUMAN]** (App Store) |
 | `apple/scripts/test.sh && apple/scripts/build.sh` (signs to run locally, no team) | agent |
-| Token, author **me**, scopes **api** and **mail** | **[HUMAN]**, in the web app's Settings → API tokens |
+| Token, author **You**, scopes **API** and **Mail** | **[HUMAN]**, in the web app's Settings → API tokens |
 | Open the app; on first launch enter the server address and paste the token | **[HUMAN]** |
 
 The server address is the one the human opens in a browser (`http://localhost:8600` on the

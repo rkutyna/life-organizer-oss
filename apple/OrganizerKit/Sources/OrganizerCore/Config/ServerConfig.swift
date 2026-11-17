@@ -16,7 +16,7 @@ import OrganizerAPI
 /// 1. `ORGANIZER_CF_ACCESS_CLIENT_ID` and `ORGANIZER_CF_ACCESS_CLIENT_SECRET` (both, development);
 /// 2. else the client id saved in Settings and the secret saved in the Keychain.
 ///
-/// The token is made in the web app, Settings → API tokens, with author "me" and the scopes
+/// The token is made in the web app, Settings → API tokens, with author "You" (`me`) and the scopes
 /// `api` and `mail`.
 public enum ServerConfig {
     /// The default address: the organizer on this Mac (`docker compose up`, docs/SETUP.md).

@@ -78,7 +78,7 @@ The app opens a sheet asking for two things:
    `http://localhost:8600` (the organizer on this Mac, the default), your Tailscale address
    `https://<machine>.<tailnet>.ts.net`, or your Cloudflare hostname.
 2. **API token:** in the web app, open **Settings → API tokens** and make a token with author
-   **me** and the scopes **api** and **mail**. Copy it; the web app shows it once.
+   **You** and the scopes **API** and **Mail**. Copy it; the web app shows it once.
 
 **Check and Save** tests both before saving:
 
@@ -128,7 +128,7 @@ The Mac helper (`mac-helper/`) sends Apple Calendar and Apple Reminders to your 
 applies the reminder changes you make there. You can run it as its own background program
 (mac-helper/README.md), or inside this app, while the app is open:
 
-1. In the web app, make a **second** token: author **helper**, scope **ingest** only.
+1. In the web app, make a **second** token: author **Mac helper**, scope **Ingest** only.
 2. In the app's Settings window (⌘,) → **Helper**, paste it and **Save Token**. It is kept in the
    Keychain apart from the app's token (account `helper-ingest-token`).
 3. Press **Request Access** and allow Calendars and Reminders (Full Access).
@@ -164,8 +164,8 @@ Signing with your own Apple ID (above) avoids both.
 - **"Can't reach the server."** Open the same address in a browser on this Mac. On the
   organizer's own Mac it is `http://localhost:8600`; from another Mac use the Tailscale or
   Cloudflare address, not `localhost`.
-- **401 in Test Connection.** The token is mistyped or revoked. Make a new one (author me, scopes
-  api and mail) and Save Token.
+- **401 in Test Connection.** The token is mistyped or revoked. Make a new one (author You, scopes
+  API and Mail) and Save Token.
 - **403, or Mail says "no mail scope".** The token lacks a scope. Tokens can't be edited: make a
   new one with both scopes.
 - **Behind Cloudflare, every request fails (often with a 403 or a login page).** Set the Access

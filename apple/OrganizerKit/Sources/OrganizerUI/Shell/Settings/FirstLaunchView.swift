@@ -26,7 +26,7 @@ struct FirstLaunchView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Connect to your organizer")
                     .font(.title2.weight(.semibold))
-                Text("This app shows your own Life Organizer server. Enter its address, and an API token you make in the web app: **Settings → API tokens**, author **me**, scopes **api** and **mail**.")
+                Text("This app shows your own Life Organizer server. Enter its address, and an API token you make in the web app: **Settings → API tokens**, author **You**, scopes **API** and **Mail**.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

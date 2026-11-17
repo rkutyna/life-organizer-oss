@@ -111,7 +111,7 @@ public struct SettingsForm: View {
                 if app.tokenSource == .environment {
                     Text("\(ServerConfig.tokenEnvironmentKey) is set at launch, so it wins over a saved token.")
                 } else {
-                    Text("Make one in the web app: Settings → API tokens, author \"me\", scopes api and mail. It is kept in your Keychain and never shown again.")
+                    Text("Make one in the web app: Settings → API tokens, author \"You\", scopes API and Mail. It is kept in your Keychain and never shown again.")
                 }
             }
 

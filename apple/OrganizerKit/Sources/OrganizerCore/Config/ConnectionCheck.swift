@@ -37,7 +37,7 @@ public struct ConnectionCheck: Sendable {
                 mail ? "Connected. The token has the api and mail scopes."
                     : "Connected, but the token has no mail scope, so Mail will not load. Make a token with the api and mail scopes."
             case .unreachable(let why): "Can't reach the organizer: \(why)"
-            case .noToken: "Enter an API token. Make one in the web app: Settings → API tokens, author \"me\", scopes api and mail."
+            case .noToken: "Enter an API token. Make one in the web app: Settings → API tokens, author \"You\", scopes API and Mail."
             case .badToken(let why): "The server refused the token (401: \(why)). It is mistyped or was revoked; make a new one in the web app."
             case .missingAPIScope(let why): "The token lacks the api scope (403: \(why)). Make one with the api and mail scopes."
             case .failed(let why): why

@@ -51,7 +51,7 @@ struct HelperSettingsView: View {
             } header: {
                 Text("Helper token")
             } footer: {
-                Text("A separate token from the app's: in the web app, Settings → API tokens, author \"helper\", scope ingest only.")
+                Text("A separate token from the app's: in the web app, Settings → API tokens, author \"Mac helper\", scope Ingest only.")
             }
 
             Section {
