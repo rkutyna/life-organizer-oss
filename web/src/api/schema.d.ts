@@ -306,7 +306,8 @@ export interface paths {
         };
         /**
          * Callback
-         * @description Google's redirect. Always answers with a redirect back to Settings.
+         * @description Google's redirect. Always answers with a redirect back to Settings, carrying only a fixed
+         *     result code: anyone can craft a link to this URL, so no text from it reaches the page.
          */
         get: operations["settings_callback"];
         put?: never;
