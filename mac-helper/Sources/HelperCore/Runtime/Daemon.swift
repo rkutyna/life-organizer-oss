@@ -112,7 +112,8 @@ public final class Daemon: @unchecked Sendable {
 
         log.info("organizer-helper \(HelperVersion.string) starting (pid \(getpid()), bundle id \(Bundle.main.bundleIdentifier ?? "none: Info.plist not embedded"))")
         log.info("server \(config.serverURL?.absoluteString ?? "(unset)"), host \(runtime.host)")
-        if config.serverURL == nil { log.warn("server.url is not set (or not an http(s) URL); pushes will fail") }
+        if let problem = config.serverURLProblem { log.error("\(problem); pushes will fail") }
+        if config.usesInsecureHTTP { log.warn("server.url is plain http to another host (allow_insecure_http); the token travels unencrypted") }
     }
 
     /// Stops scheduling, lets in-flight jobs finish for up to `stopGraceSeconds`, then cancels

@@ -8,7 +8,7 @@ public enum PushError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .noServer: return "server.url is not configured (or is not an http(s) URL)"
+        case .noServer: return "server.url is not configured, not an http(s) URL, or plain http to another host (run organizer-helper doctor)"
         case .noToken: return "no ingest token: set server.token in the config, or run `organizer-helper set-token`"
         case .http(let code, let body): return "HTTP \(code): \(body.prefix(300))"
         case .transport(let s): return s
@@ -79,14 +79,16 @@ public final class ServerClient: RemindersServer, @unchecked Sendable {
                                              label: "GET reminder ops", throwOnHTTPError: false, retry: false)
         if code == 404 { return nil }
         guard (200..<300).contains(code) else { throw PushError.http(code, String(decoding: data, as: UTF8.self)) }
-        return try JSONCoding.decoder().decode(ReminderOpsResponse.self, from: data).ops
+        return try JSONCoding.decoder().decode(ReminderOpsResponse.self, from: data).instancedOps
     }
 
     public func ackReminderOp(_ id: Int, _ ack: OpAck) async throws -> Bool {
         let body = try JSONCoding.encoder().encode(ack)
         let (code, data) = try await request(method: "POST", path: "/api/ingest/reminders/ops/\(id)/ack", body: body,
                                              label: "ack op \(id)", throwOnHTTPError: false)
-        if code == 404 { return false }
+        // 404: withdrawn. 409: the op came from another server instance (the database was
+        // recreated). Either way there is nothing to record; the next snapshot shows the result.
+        if code == 404 || code == 409 { return false }
         guard (200..<300).contains(code) else { throw PushError.http(code, String(decoding: data, as: UTF8.self)) }
         return true
     }

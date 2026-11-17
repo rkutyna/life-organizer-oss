@@ -113,7 +113,7 @@ final class ReminderWireTests: XCTestCase {
 
     func testAckEncodingUsesProviderNames() throws {
         let failure = try JSONSerialization.jsonObject(with: JSONCoding.encoder().encode(OpAck.failure("nope"))) as! [String: Any]
-        XCTAssertEqual(Set(failure.keys), ["ok", "external_id", "local_id", "error", "conflicts"])
+        XCTAssertEqual(Set(failure.keys), ["ok", "external_id", "local_id", "error", "conflicts", "instance_id"])
         XCTAssertEqual(failure["ok"] as? Bool, false)
         XCTAssertEqual(failure["error"] as? String, "nope")
         XCTAssertTrue(failure["external_id"] is NSNull)

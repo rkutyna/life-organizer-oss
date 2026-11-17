@@ -48,12 +48,13 @@ public enum Doctor {
 
         // Config
         line(configExists, "config", configExists ? configPath : "\(configPath) missing (copy helper.example.json there)")
-        if configExists, let t = config.server.token, !t.isEmpty,
-           let attrs = try? FileManager.default.attributesOfItem(atPath: configPath),
-           let perms = (attrs[.posixPermissions] as? NSNumber)?.intValue, perms & 0o077 != 0 {
-            line(false, "config permissions", String(format: "%o; it holds the token, run: chmod 600 \"%@\"", perms, configPath))
+        if configExists, let problem = HelperConfig.permissionProblem(path: configPath, holdsToken: config.holdsToken) {
+            line(false, "config permissions", problem.message + (problem.refuse ? " (run refuses to start)" : ""))
         }
-        line(config.serverURL != nil, "server url", config.serverURL?.absoluteString ?? "unset or not an http(s) URL")
+        line(config.serverURL != nil, "server url", config.serverURL?.absoluteString ?? config.serverURLProblem ?? "unusable")
+        if config.usesInsecureHTTP {
+            line(false, "server url", "WARNING: plain http to another host (server.allow_insecure_http); the token travels unencrypted")
+        }
         let resolved = TokenResolver.resolve(config: config, keychain: env.keychain)
         line(resolved.token != nil, "ingest token", resolved.source.description)
         line(nil, "streams", "calendar \(config.calendar.enabled ? "on" : "off"), reminders \(config.reminders.enabled ? "on" : "off")"

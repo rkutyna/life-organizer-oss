@@ -79,6 +79,13 @@ chmod 600 ~/.config/life-organizer-for-mac/helper.json
 ```
 
 Set `server.url` to your organizer's address, for example `https://organizer.example.com`. There is no default.
+Plain `http://` is accepted only for this Mac itself (`localhost`, `127.0.0.1`, `::1`). For another host over
+plain http, which sends the token unencrypted, you must also set `server.allow_insecure_http` to `true`;
+`doctor` flags it.
+
+The config must not be writable by other users (anyone who could edit it could send your token to another
+server): `run` refuses to start if it is. If it holds the token (`server.token`), it must not be readable by
+others either; `run` logs a warning and `doctor` reports it. `chmod 600` covers both.
 
 ### 3. Store the token
 
@@ -169,17 +176,19 @@ example) may ask again or show up as a second entry.
 - **Nothing is deleted.** The helper has no delete. A change whose reminder no longer exists is reported as
   failed, and read-only lists are never written. A change withdrawn in the organizer meanwhile is dropped.
 - **Safe to repeat.** If a report back is lost, the change is sent again. Applying it twice does nothing
-  more, and an add is never made twice.
+  more, and an add is never made twice. The helper remembers adds by the server's instance id and the change's
+  id, so a recreated server database (whose change ids start again) is never mistaken for the old one.
 
 ## Config reference
 
 | Key | Default | Meaning |
 |---|---|---|
-| `server.url` | none | The organizer's base URL (http or https) |
+| `server.url` | none | The organizer's base URL: https, or http to this Mac only |
 | `server.token` | `null` | The ingest token; `null` reads it from the Keychain |
 | `server.timeout_seconds` | `30` | Per request |
-| `bundle_id` | `com.lifeorganizerformac.helper` | Default Keychain service and LaunchAgent label |
-| `launch_agent_label` | `null` (= `bundle_id`) | The LaunchAgent's label |
+| `server.allow_insecure_http` | `false` | Allow plain http to another host (the token travels unencrypted) |
+| `bundle_id` | `com.lifeorganizerformac.helper` | Default Keychain service and LaunchAgent label (reverse-DNS) |
+| `launch_agent_label` | `null` (= `bundle_id`) | The LaunchAgent's label (reverse-DNS) |
 | `keychain.service` / `keychain.account` | `null` (= `bundle_id`) / `ingest-token` | Where `set-token` stores the token |
 | `host` | the Mac's local host name | Sent with each snapshot |
 | `heartbeat_seconds` | `900` | Resend an unchanged snapshot this often |
@@ -199,7 +208,10 @@ example) may ask again or show up as a second entry.
 
 - **`doctor` says the token was rejected (401/403).** The token was revoked, mistyped, or lacks the `ingest`
   scope. Create a new one and run `set-token` again. The background helper picks it up on its next request.
-- **"server.url is not configured".** Set `server.url` to an `http://` or `https://` address.
+- **"server.url is not configured".** Set `server.url` to an `https://` address (or `http://` to this Mac).
+- **"server.url uses plain http to another host".** Use https. On a network you trust you can set
+  `server.allow_insecure_http` to `true` instead.
+- **"... is writable by other users".** Run `chmod 600` on the config, as the message says.
 - **"reachable, but /api/ingest/calendar is not there (HTTP 404)".** `server.url` points to the wrong place,
   or to a path in front of the organizer.
 - **No permission prompt appeared.** The prompt appears only for the background helper, not for commands run

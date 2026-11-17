@@ -4,7 +4,8 @@ import Foundation
 public protocol RemindersServer: AnyObject {
     /// Pending ops in queue order; nil when the server has no such endpoint (404).
     func fetchReminderOps() async throws -> [ReminderOp]?
-    /// Records one op's result. false: the op is gone (withdrawn in the organizer, 404).
+    /// Records one op's result. false: the op is gone (withdrawn in the organizer, 404, or from
+    /// another server instance, 409).
     func ackReminderOp(_ id: Int, _ ack: OpAck) async throws -> Bool
 }
 
@@ -74,7 +75,7 @@ public final class RemindersSync: @unchecked Sendable {
                 setState(applier.state)  // a create is remembered before its ack goes out
                 if ack.ok { applied += 1 } else { failed += 1; log.warn("reminders: op \(op.id) failed: \(ack.error ?? "")") }
                 do {
-                    if try await !server.ackReminderOp(op.id, ack) { gone += 1 }
+                    if try await !server.ackReminderOp(op.id, ack.addressed(to: op)) { gone += 1 }
                 } catch {
                     // Stop here: the rest stay pending and are re-sent; re-applying is harmless.
                     stopped = "ack \(op.id) failed: \(error)"

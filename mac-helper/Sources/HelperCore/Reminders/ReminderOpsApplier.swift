@@ -5,7 +5,7 @@ import Foundation
 /// Rules:
 /// - Ops apply in queue order. Re-applying one is harmless: a field already at the op's value is
 ///   skipped, completing a completed reminder is a no-op, and a create remembered in
-///   `created_ops` is acked again rather than repeated.
+///   `created_ops` (by server instance and op id) is acked again rather than repeated.
 /// - The loop rule: each field in `fields` is compared with `base` (what the organizer believed
 ///   Reminders held when it queued the op). A field still at `base` takes the op's value. A field
 ///   that changed in Reminders since is a conflict: the last writer wins, the reminder's
@@ -55,7 +55,7 @@ public final class ReminderOpsApplier {
     // MARK: kinds
 
     private func create(_ op: ReminderOp, now: Date) -> Outcome {
-        if let prior = state.created(op: op.id), let existing = store.reminder(localId: prior.local_id) {
+        if let prior = state.created(op: op.id, instance: op.instance), let existing = store.reminder(localId: prior.local_id) {
             createdInBatch[op.reminder_id] = existing.localId
             return .ack(.success(external: existing.externalId, local: existing.localId))
         }
@@ -69,7 +69,7 @@ public final class ReminderOpsApplier {
         let change = ReminderChange(fields: fields, values: values, completionDate: values.completed ? now : nil)
         do {
             let made = try store.create(listId: listId, change: change)
-            state.recordCreated(op: op.id, .init(local_id: made.localId, external_id: made.externalId, at: now))
+            state.recordCreated(op: op.id, instance: op.instance, .init(local_id: made.localId, external_id: made.externalId, at: now))
             createdInBatch[op.reminder_id] = made.localId
             return .ack(.success(external: made.externalId, local: made.localId))
         } catch {

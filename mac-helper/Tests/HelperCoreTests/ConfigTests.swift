@@ -52,8 +52,9 @@ final class ConfigTests: XCTestCase {
     }
 
     func testServerURLMustBeHTTP() throws {
-        for (url, ok) in [("https://organizer.example.com", true), ("http://192.0.2.10:8600", true),
-                          ("organizer.example.com", false), ("ftp://organizer.example.com", false), ("  ", false)] {
+        for (url, ok) in [("https://organizer.example.com", true), ("http://localhost:8600", true),
+                          ("http://192.0.2.10:8600", false), ("organizer.example.com", false),
+                          ("ftp://organizer.example.com", false), ("  ", false)] {
             var c = HelperConfig()
             c.server.url = url
             XCTAssertEqual(c.serverURL != nil, ok, url)

@@ -27,6 +27,16 @@ bundle_id="${BUNDLE_ID:-com.lifeorganizerformac.helper}"
 label="${LAUNCH_AGENT_LABEL:-$bundle_id}"
 scratch="$here/.build"
 
+# Both name files and launchd services: reverse-DNS names only (no '/', no '..').
+reverse_dns='^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$'
+for pair in "BUNDLE_ID=$bundle_id" "LAUNCH_AGENT_LABEL=$label"; do
+  name="${pair%%=*}" value="${pair#*=}"
+  if [[ ! "$value" =~ $reverse_dns ]]; then
+    echo "error: $name '$value' is not a reverse-DNS name such as org.example.helper" >&2
+    exit 1
+  fi
+done
+
 if [[ "$bundle_id" != "com.lifeorganizerformac.helper" ]]; then
   # A copy of the Info.plist with the other bundle id, linked in instead of Resources/Info.plist
   # (Package.swift reads ORGANIZER_HELPER_INFO_PLIST). Its own scratch path keeps the builds apart.
