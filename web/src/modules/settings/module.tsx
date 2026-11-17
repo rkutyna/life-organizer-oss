@@ -18,7 +18,7 @@ export default {
     {
       key: "google",
       label: "Google account",
-      description: "Google Calendar and Gmail, read only, through Google's own sign-in.",
+      description: "Google Calendar and Gmail (read only) and Google Tasks, through Google's own sign-in.",
       order: 10,
       form: GoogleConnector,
     },

@@ -56,7 +56,7 @@ export function GoogleConnector({ onCancel }: AccountConnectorProps) {
         <div className="space-y-2 text-[13px] text-muted-foreground">
           <p>Google needs an OAuth client of your own first. Once, in Google Cloud Console:</p>
           <ol className="list-decimal space-y-1 pl-5">
-            <li>Create a project, enable the Google Calendar API and the Gmail API.</li>
+            <li>Create a project, enable the Google Calendar API, the Gmail API and the Google Tasks API.</li>
             <li>
               Configure the OAuth consent screen as an External app, add yourself as a user, and
               publish it (in Testing mode, Google's sign-in expires after 7 days).
