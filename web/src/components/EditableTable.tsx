@@ -88,6 +88,9 @@ export interface EditableTableProps<T> {
   emptyMessage?: string;
   /** Extra controls rendered next to the search box. */
   toolbar?: ReactNode;
+  /** Control the search box's text (e.g. to keep it in the URL). Uncontrolled when left out. */
+  filter?: string;
+  onFilterChange?: (text: string) => void;
   className?: string;
 }
 
@@ -104,12 +107,19 @@ export function EditableTable<T>({
   searchPlaceholder = "Filter…",
   emptyMessage = "Nothing to show.",
   toolbar,
+  filter,
+  onFilterChange,
   className,
 }: EditableTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(
     initialSort ? [{ id: initialSort.key, desc: initialSort.desc ?? false }] : [],
   );
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [ownFilter, setOwnFilter] = useState("");
+  const globalFilter = filter ?? ownFilter;
+  const setGlobalFilter = (text: string) => {
+    setOwnFilter(text);
+    onFilterChange?.(text);
+  };
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [editing, setEditing] = useState<{ rowId: string; key: string } | null>(null);
 
@@ -134,7 +144,8 @@ export function EditableTable<T>({
     columns: columnDefs,
     state: { sorting, globalFilter, columnFilters },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: (updater) =>
+      setGlobalFilter(String(typeof updater === "function" ? updater(globalFilter) : (updater ?? ""))),
     onColumnFiltersChange: setColumnFilters,
     getRowId: (row) => String(getRowId(row)),
     getCoreRowModel: getCoreRowModel(),

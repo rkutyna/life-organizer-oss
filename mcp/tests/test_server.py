@@ -12,18 +12,40 @@ from support import FakeOrganizer
 
 from organizer_mcp import server, toolsets
 
-EXPECTED_TOOLS = [
-    "calendar",
-    "calendar_sources",
-    "emails",
-    "email",
+CALENDAR_TOOLS = ["calendar", "calendar_sources"]
+MAIL_TOOLS = ["emails", "email"]
+JOBS_TOOLS = [
+    "applications",
+    "leads",
+    "companies",
+    "contacts",
+    "interviews",
+    "job_events",
+    "pipeline",
+    "job_statuses",
+    "weekly_goals",
+    "add_application",
+    "set_application_status",
+    "add_lead",
+    "mark_applied",
+    "drop_lead",
+    "update_company",
+    "add_contact",
+    "update_contact",
+    "add_interview",
+    "update_interview",
+    "add_job_event",
+    "update_job_event",
+    "set_weekly_goal",
+]
+REMINDER_TOOLS = [
     "reminders",
     "reminder_lists",
     "add_reminder",
     "complete_reminder",
     "update_reminder",
 ]
-REMINDER_TOOLS = EXPECTED_TOOLS[4:]
+EXPECTED_TOOLS = CALENDAR_TOOLS + MAIL_TOOLS + JOBS_TOOLS + REMINDER_TOOLS
 
 
 def listed() -> dict[str, Any]:
@@ -56,16 +78,13 @@ def test_serve_only_removes_the_tools_left_out(monkeypatch: pytest.MonkeyPatch) 
 
     assert server.serve_only(toolsets.choose(None, False)) == ["emails", "email"]
     assert removed == ["emails", "email"]
-    assert server.serve_only(toolsets.choose("mail", False)) == [
-        "calendar",
-        "calendar_sources",
-        *REMINDER_TOOLS,
-    ]
-    assert server.serve_only(toolsets.choose("all,mail", True), read_only=True) == [
-        "add_reminder",
-        "complete_reminder",
-        "update_reminder",
-    ]
+    assert server.serve_only(toolsets.choose("mail", False)) == (
+        CALENDAR_TOOLS + JOBS_TOOLS + REMINDER_TOOLS
+    )
+    assert server.serve_only(toolsets.choose("calendar,mail", False)) == (
+        JOBS_TOOLS + REMINDER_TOOLS
+    )
+    assert server.serve_only(toolsets.choose("all,mail", True)) == []
 
 
 @pytest.fixture
@@ -118,7 +137,7 @@ def test_main_for_mail_needs_only_the_mail_token(
 
 @pytest.mark.parametrize(
     ("toolsets_env", "message"),
-    [("email", "unknown toolset"), ("jobs", "not in this version yet")],
+    [("email", "unknown toolset"), ("calendar,later", "unknown toolset")],
 )
 def test_main_refuses_bad_toolsets(
     run: list[str],

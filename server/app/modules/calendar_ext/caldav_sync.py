@@ -82,6 +82,7 @@ class DAVSource:
                 password=self._password,
                 timeout=REQUEST_TIMEOUT_SECONDS,
                 enable_rfc6764=False,  # the URL is given in full; no DNS discovery
+                ssl_verify_cert=True,  # explicit: an impostor server never gets the password
             )
         return self._client
 

@@ -27,16 +27,31 @@ export default function SettingsPage() {
   );
 }
 
-/** Google's consent flow ends back here with ?google=connected|error&detail=...; say so once. */
+/**
+ * What the server's Google redirect may report. Only these fixed words are ever shown: anyone
+ * can link to /settings?google=..., so nothing from the URL itself reaches the page.
+ */
+const GOOGLE_RESULTS: Record<string, string> = {
+  cancelled: "Google sign-in was cancelled.",
+  denied: "Google did not grant access. Try again from Add account.",
+  state: "That Google sign-in link was already used or is unknown. Start again from Add account.",
+  expired: "The Google sign-in took too long. Start again from Add account.",
+  rejected: "Google did not accept the sign-in. Check the OAuth client settings in docs/GOOGLE.md.",
+  identity: "Google did not say which account this is. Try again.",
+  no_refresh_token:
+    "Google sent no lasting sign-in. Remove this app's access in your Google account settings, then try again.",
+  unreachable: "Google could not be reached. Try again.",
+};
+
+/** Google's consent flow ends back here with ?google=<result>; say so once. */
 function useGoogleReturn() {
   const [params, setParams] = useSearchParams();
   const result = params.get("google");
-  const detail = params.get("detail") ?? "";
   useEffect(() => {
     if (!result) return;
-    if (result === "connected") toast.success(`Connected ${detail || "your Google account"}`);
-    else toast.error(detail === "cancelled" ? "Google sign-in was cancelled" : `Google: ${detail}`);
+    if (result === "connected") toast.success("Google account connected.");
+    else toast.error(GOOGLE_RESULTS[result] ?? "Connecting the Google account failed. Try again.");
     setParams({}, { replace: true });
     document.getElementById("accounts-title")?.scrollIntoView();
-  }, [result, detail, setParams]);
+  }, [result, setParams]);
 }

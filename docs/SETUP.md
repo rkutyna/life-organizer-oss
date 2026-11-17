@@ -41,7 +41,11 @@ The app listens on the host's loopback (`127.0.0.1:8600`) only. Choose one of th
    HTTPS the browser won't install it as an app, and the session cookie travels unencrypted on
    your network.
 
-Do not publish the port on the open internet without HTTPS in front.
+Do not publish the port on the open internet without HTTPS in front. Behind any HTTPS proxy,
+set `COOKIE_SECURE=always` in `.env`, so the session cookie is only ever sent over HTTPS.
+
+**Finish setup before you expose it.** Until setup has run, whoever opens the page first chooses
+the password. Run setup on the machine itself (http://localhost:8600), then add the proxy.
 
 ## 3. Connect Claude (optional)
 
@@ -68,6 +72,21 @@ docker compose cp organizer:/app/server/data/backup.db ./organizer-backup.db
 ```
 
 Store the backup apart from your `.env`.
+
+## Demo data
+
+To look around before connecting anything, fill a separate, fresh database with made-up data.
+This needs the development setup below. It never touches an install that is already set up.
+
+```bash
+cd server && export DATABASE_URL=sqlite:///./data/demo.db
+uv run alembic upgrade head
+uv run python -m app.demo_seed --password "demo password 1"
+SCHEDULER_ENABLED=false WEB_DIST=../web/dist uv run uvicorn app.main:app --port 8600
+```
+
+Sign in with that password. The demo accounts have no real server behind them, which is why
+the scheduler is off and opening a demo message shows a connection error.
 
 ## Development
 

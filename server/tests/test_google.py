@@ -123,7 +123,7 @@ def test_consent_creates_an_encrypted_account(
     response = finish(anon, start(client))
 
     assert response.status_code == 303
-    assert response.headers["location"].startswith("/settings?google=connected")
+    assert response.headers["location"] == "/settings?google=connected"
     [account] = session.scalars(select(ProviderAccount))
     assert (account.kind, account.label) == ("google", "friend@example.com")
     assert google.granted_scopes(account) == sorted(fake.scope.split())
@@ -142,7 +142,7 @@ def test_state_is_single_use(client: TestClient, anon: TestClient, configured, f
     query = start(client)
     assert "connected" in finish(anon, query).headers["location"]
     again = finish(anon, query)
-    assert "google=error" in again.headers["location"]
+    assert again.headers["location"] == "/settings?google=state"
 
 
 def test_unknown_or_old_state_is_refused(
@@ -153,13 +153,13 @@ def test_unknown_or_old_state_is_refused(
         params={"state": "made-up", "code": "x"},
         follow_redirects=False,
     )
-    assert "google=error" in forged.headers["location"]
+    assert forged.headers["location"] == "/settings?google=state"
 
     query = start(client)
     row = session.scalars(select(google.OAuthState)).one()
     row.created_at = utcnow() - timedelta(hours=1)
     session.commit()
-    assert "took+too+long" in finish(anon, query).headers["location"]
+    assert finish(anon, query).headers["location"] == "/settings?google=expired"
     assert fake.calls(google.TOKEN_URL) == []
 
 
@@ -167,7 +167,7 @@ def test_cancelled_consent(anon: TestClient):
     response = anon.get(
         "/api/oauth/google/callback", params={"error": "access_denied"}, follow_redirects=False
     )
-    assert response.headers["location"].startswith("/settings?google=error&detail=cancelled")
+    assert response.headers["location"] == "/settings?google=cancelled"
 
 
 def test_reconnecting_merges_scopes_and_keeps_the_refresh_token(

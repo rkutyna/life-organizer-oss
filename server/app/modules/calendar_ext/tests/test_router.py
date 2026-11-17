@@ -145,3 +145,12 @@ def test_sync_now_reports_each_account(client: TestClient, connections):
     outcomes = client.post("/api/calendar_ext/sync").json()
 
     assert outcomes == [{"account_id": created["id"], "ok": True, "events": 1, "error": None}]
+
+
+def test_plain_http_is_refused_except_on_this_machine(client, connections):
+    body = {"preset": "caldav", "username": "demo", "password": "secret-pass"}
+    refused = client.post(URL, json={**body, "url": "http://dav.example.com/cal/"})
+    assert refused.status_code == 400 and "https://" in refused.json()["detail"]
+    assert connections == []
+    local = client.post(URL, json={**body, "url": "http://localhost:5232/demo/"})
+    assert local.status_code == 201

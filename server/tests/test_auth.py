@@ -215,3 +215,46 @@ def test_token_create_validates(client: TestClient):
     assert create(author="system") == 422
     assert create(scopes=[]) == 422
     assert create(scopes=["admin"]) == 422
+
+
+# --------------------------------------------------------------------------- review fixes
+
+
+def test_spoofed_forwarded_for_does_not_dodge_the_throttle(
+    client: TestClient, app: FastAPI, monkeypatch
+):
+    monkeypatch.setattr(auth_router, "throttle", type(auth_router.throttle)())
+    with TestClient(app, headers=CSRF) as attacker:
+        codes = [
+            attacker.post(
+                "/api/auth/login",
+                json={"password": "nope nope"},
+                # The client chose the first entry; the proxy appended the last.
+                headers={"X-Forwarded-For": f"10.9.9.{n}, 203.0.113.7"},
+            ).status_code
+            for n in range(7)
+        ]
+    assert codes[:5] == [401] * 5 and codes[5:] == [429, 429]
+
+
+def test_many_failures_never_lock_out_the_right_password(
+    client: TestClient, app: FastAPI, monkeypatch
+):
+    throttle = type(auth_router.throttle)()
+    monkeypatch.setattr(auth_router, "throttle", throttle)
+    monkeypatch.setattr(throttle, "OVERALL_DELAY_SECONDS", 0.01)
+    with TestClient(app, headers=CSRF) as attackers:
+        for n in range(35):  # past the overall limit, from many proxied addresses
+            attackers.post(
+                "/api/auth/login",
+                json={"password": "nope nope"},
+                headers={"X-Forwarded-For": f"198.51.100.{n}"},
+            )
+    assert throttle.overall_delay() > 0
+    with TestClient(app, headers=CSRF) as owner:
+        response = owner.post(
+            "/api/auth/login",
+            json={"password": PASSWORD},
+            headers={"X-Forwarded-For": "192.0.2.10"},
+        )
+    assert response.status_code == 200

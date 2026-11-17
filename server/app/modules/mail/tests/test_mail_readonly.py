@@ -327,3 +327,20 @@ def test_folder_ids_round_trip_through_json() -> None:
     # The sync stores remote ids as strings; an IMAP id keeps its UIDVALIDITY prefix.
     folder = FolderIds("inbox", "INBOX", ["77:1"])
     assert json.loads(json.dumps(folder.remote_ids)) == ["77:1"]
+
+
+def test_imap_checks_the_server_certificate(monkeypatch) -> None:
+    import ssl
+
+    context = imap.tls_context()
+    assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+
+    seen: dict = {}
+
+    def fake_ssl(host, port, **kwargs):
+        seen.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(imap.imaplib, "IMAP4_SSL", fake_ssl)
+    imap.default_connect("imap.example.com", 993)
+    assert seen["ssl_context"].verify_mode == ssl.CERT_REQUIRED

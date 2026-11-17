@@ -4,6 +4,7 @@
 CSRF header on POST. Everything else needs a signed-in browser.
 """
 
+import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -64,6 +65,16 @@ def _set_cookie(response: Response, request: Request, settings, raw: str) -> Non
 
 
 def _client(request: Request) -> str:
+    """The address the login throttle counts against.
+
+    Behind a reverse proxy (Tailscale, cloudflared, Caddy...) it is the last X-Forwarded-For
+    entry: the one the proxy itself appended, which the client cannot choose. Earlier entries
+    are whatever the client sent and are ignored. Without a proxy it is the peer address.
+    """
+    forwarded = request.headers.get("x-forwarded-for", "")
+    hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+    if hops:
+        return hops[-1]
     return request.client.host if request.client else "unknown"
 
 
@@ -134,6 +145,9 @@ def login(
             f"too many failed sign-ins; try again in {wait // 60 + 1} minutes",
             headers={"Retry-After": str(wait)},
         )
+    delay = throttle.overall_delay()
+    if delay:
+        time.sleep(delay)  # many failures lately, from anywhere: slow down, never refuse
     if not service.verify_password(config, payload.password):
         throttle.failed(client)
         raise HTTPException(401, "wrong password")

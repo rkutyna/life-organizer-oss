@@ -63,3 +63,16 @@ def test_spa_fallback_and_api_404(tmp_path: Path, settings: Settings):
     assert "immutable" in asset.headers["cache-control"]
     assert client.get("/api/nope").status_code == 404
     assert client.get("/../secrets").text == "<html>app</html>"
+
+
+def test_api_docs_are_off_unless_asked_for(anon: TestClient, settings: Settings, tmp_path: Path):
+    for path in ("/docs", "/redoc", "/openapi.json"):
+        assert anon.get(path).status_code == 404
+    docs = TestClient(create_app(settings.model_copy(update={"expose_api_docs": True})))
+    assert docs.get("/openapi.json").status_code == 200
+
+
+def test_content_security_policy(anon: TestClient):
+    csp = anon.get("/api/health").headers["content-security-policy"]
+    assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp
+    assert "unsafe-inline" not in csp.split("script-src")[1].split(";")[0]
