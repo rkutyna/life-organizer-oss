@@ -167,6 +167,15 @@ public enum CLI {
         case .run:
             log.configure(path: config.logPath, verbose: opts.verbose)
             if !exists { log.warn("no config at \(opts.configPath); using defaults") }
+            if exists, let problem = HelperConfig.permissionProblem(path: opts.configPath, holdsToken: config.holdsToken) {
+                if problem.refuse {
+                    log.error("not starting: \(problem.message)")
+                    context.err("error: \(problem.message)")
+                    return 2
+                }
+                log.error("WARNING: \(problem.message)")
+                context.err("WARNING: \(problem.message)")
+            }
             return await runDaemon(config: config, context: context)
         case .doctor:
             log.configure(path: nil, verbose: opts.verbose)

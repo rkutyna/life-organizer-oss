@@ -124,13 +124,17 @@ public struct ReminderOp: Decodable, Equatable, Sendable {
     public var fields: OpFields
     public var base: OpFields
     public var queued_at: Date
+    /// The server instance the op came from (the response's `instance_id`, copied onto each op
+    /// by `ReminderOpsResponse.instancedOps`). nil: a server that sends none.
+    public var instance: String?
 
     enum CodingKeys: String, CodingKey { case id, reminder_id, kind, external_id, local_id, fields, base, queued_at }
 
     public init(id: Int, reminder_id: Int, kind: String, external_id: String? = nil, local_id: String? = nil,
-                fields: OpFields = OpFields(), base: OpFields = OpFields(), queued_at: Date) {
+                fields: OpFields = OpFields(), base: OpFields = OpFields(), queued_at: Date, instance: String? = nil) {
         self.id = id; self.reminder_id = reminder_id; self.kind = kind; self.external_id = external_id
         self.local_id = local_id; self.fields = fields; self.base = base; self.queued_at = queued_at
+        self.instance = instance
     }
 
     /// `fields` and `base` may be absent or null (a complete op has no fields; a create has an
@@ -151,6 +155,13 @@ public struct ReminderOp: Decodable, Equatable, Sendable {
 public struct ReminderOpsResponse: Decodable, Sendable {
     public var ops: [ReminderOp]
     public var server_time: Date?
+    /// The server database's identity; op ids are unique only within it.
+    public var instance_id: String?
+
+    /// `ops`, each carrying `instance_id`.
+    public var instancedOps: [ReminderOp] {
+        ops.map { var op = $0; op.instance = instance_id; return op }
+    }
 }
 
 // MARK: POST /api/ingest/reminders/ops/{id}/ack
@@ -182,6 +193,24 @@ public struct OpAck: Codable, Equatable, Sendable {
     @NullCodable public var local_id: String?
     @NullCodable public var error: String?
     public var conflicts: [OpConflict]
+    /// The server instance the op came from; the server refuses an ack meant for another (409).
+    @NullCodable public var instance_id: String?
+
+    public init(ok: Bool, external_id: String?, local_id: String?, error: String?, conflicts: [OpConflict],
+                instance_id: String? = nil) {
+        self.ok = ok; self.external_id = external_id; self.local_id = local_id; self.error = error
+        self.conflicts = conflicts; self.instance_id = instance_id
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        ok = try c.decode(Bool.self, forKey: .ok)
+        external_id = try c.decodeIfPresent(String.self, forKey: .external_id)
+        local_id = try c.decodeIfPresent(String.self, forKey: .local_id)
+        error = try c.decodeIfPresent(String.self, forKey: .error)
+        conflicts = try c.decodeIfPresent([OpConflict].self, forKey: .conflicts) ?? []
+        instance_id = try c.decodeIfPresent(String.self, forKey: .instance_id)
+    }
 
     public static func success(external: String? = nil, local: String? = nil, conflicts: [OpConflict] = []) -> OpAck {
         OpAck(ok: true, external_id: external, local_id: local, error: nil, conflicts: conflicts)
@@ -189,5 +218,12 @@ public struct OpAck: Codable, Equatable, Sendable {
 
     public static func failure(_ error: String) -> OpAck {
         OpAck(ok: false, external_id: nil, local_id: nil, error: error, conflicts: [])
+    }
+
+    /// This ack, addressed to the instance `op` came from.
+    public func addressed(to op: ReminderOp) -> OpAck {
+        var ack = self
+        ack.instance_id = op.instance
+        return ack
     }
 }

@@ -4,6 +4,7 @@ Google is an httpx.MockTransport that is never a real server."""
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -133,13 +134,15 @@ class FakeTasks:
 
     `lists` maps a task list id to its title; `tasks` maps a list id to {task id: task}.
     `fail` maps "METHOD path-regex" to a status code to answer instead. Every request is
-    recorded in `calls` as (method, path, json body or None).
+    recorded in `calls` as (method, path, json body or None), and its query in `queries`.
+    Listing tasks honors `updatedMin` and `completedMin` as Google does.
     """
 
     lists: dict[str, str] = field(default_factory=dict)
     tasks: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
     fail: dict[str, int] = field(default_factory=dict)
     calls: list[tuple[str, str, Any]] = field(default_factory=list)
+    queries: list[dict[str, str]] = field(default_factory=list)
     clock: str = "2026-10-19T12:00:00.000Z"
     raise_network: bool = False
     _next: int = 0
@@ -160,6 +163,7 @@ class FakeTasks:
         path = request.url.path.removeprefix("/tasks/v1")
         body = json.loads(request.content) if request.content else None
         self.calls.append((request.method, path, body))
+        self.queries.append(dict(request.url.params))
         if self.raise_network:
             raise httpx.ConnectError("synthetic network failure", request=request)
         for pattern, status in self.fail.items():
@@ -175,7 +179,7 @@ class FakeTasks:
         list_id, task_id, move = match.groups()
         tasks = self.tasks.setdefault(list_id, {})
         if task_id is None and request.method == "GET":
-            return httpx.Response(200, json={"items": list(tasks.values())})
+            return httpx.Response(200, json={"items": _listed(tasks, request.url.params)})
         if task_id is None and request.method == "POST":
             self._next += 1
             new = {"id": f"new-{self._next}", "status": "needsAction", **(body or {})}
@@ -204,6 +208,27 @@ class FakeTasks:
             task["updated"] = self.clock
             return httpx.Response(200, json=task)
         return httpx.Response(405)
+
+
+def _stamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _listed(tasks: dict[str, dict[str, Any]], params: Any) -> list[dict[str, Any]]:
+    out = list(tasks.values())
+    if "updatedMin" in params:
+        since = _stamp(params["updatedMin"])
+        out = [t for t in out if _stamp(t["updated"]) >= since]
+    if "completedMin" in params:
+        since = _stamp(params["completedMin"])
+        out = [
+            t
+            for t in out
+            if t.get("status") != "completed"
+            or not t.get("completed")
+            or _stamp(t["completed"]) >= since
+        ]
+    return out
 
 
 @pytest.fixture

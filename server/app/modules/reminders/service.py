@@ -210,9 +210,12 @@ def set_completed(
 
 
 def retry(session: Session, settings: Settings, op: ReminderOp, author: str) -> ReminderOp:
-    """Queue a failed op again (and apply it now when the server is its applier)."""
-    audit.update(session, op, {"state": "pending", "error": None, "attempts": 0}, author)
+    """Queue a failed op again (and apply it now when the server is its applier). Refused when
+    its reminder is gone or the row is no longer the reminder it was queued for."""
     row = session.get(Reminder, op.reminder_id)
-    if row is not None:
-        dispatch(session, settings, row)
+    if not sync.target_matches(op, row):
+        raise ReminderRefused(409, f"{sync.STALE_TARGET}; withdraw it")
+    audit.update(session, op, {"state": "pending", "error": None, "attempts": 0}, author)
+    assert row is not None
+    dispatch(session, settings, row)
     return op

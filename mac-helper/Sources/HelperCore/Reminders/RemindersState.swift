@@ -1,8 +1,12 @@
 import Foundation
 
 /// What the Reminders sync remembers between runs (`<state dir>/reminders.json`):
-/// `created_ops`, op id -> the reminder a create op made, so a create whose ack was lost is
+/// `created_ops`, op -> the reminder a create op made, so a create whose ack was lost is
 /// acked again instead of creating a duplicate.
+///
+/// An op is keyed by the server's `instance_id` and its id ("<instance>:<id>"): op ids are
+/// unique only within one server database, and a recreated one starts again at 1. A server
+/// that sends no instance id gets the bare op id.
 public struct RemindersState: Codable, Equatable, Sendable {
     public struct Created: Codable, Equatable, Sendable {
         public var local_id: String
@@ -25,9 +29,18 @@ public struct RemindersState: Codable, Equatable, Sendable {
         created_ops = try c.decodeIfPresent([String: Created].self, forKey: .created_ops) ?? [:]
     }
 
-    public func created(op: Int) -> Created? { created_ops[String(op)] }
+    public static func key(op: Int, instance: String?) -> String {
+        guard let instance, !instance.isEmpty else { return String(op) }
+        return "\(instance):\(op)"
+    }
 
-    public mutating func recordCreated(op: Int, _ entry: Created) { created_ops[String(op)] = entry }
+    public func created(op: Int, instance: String? = nil) -> Created? {
+        created_ops[Self.key(op: op, instance: instance)]
+    }
+
+    public mutating func recordCreated(op: Int, instance: String? = nil, _ entry: Created) {
+        created_ops[Self.key(op: op, instance: instance)] = entry
+    }
 
     /// Forget creates older than a week (their acks have long been delivered).
     public mutating func prune(now: Date) {

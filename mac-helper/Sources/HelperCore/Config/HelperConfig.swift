@@ -11,9 +11,13 @@ public struct HelperConfig: Codable, Sendable {
         /// The `ingest`-scoped API token. null or absent: read it from the Keychain instead.
         @NullCodable public var token: String?
         public var timeout_seconds: Double
+        /// Allow a plain `http://` url to a host other than this Mac. The token then travels
+        /// unencrypted; only for a network you trust. Default false: such a url is refused.
+        public var allow_insecure_http: Bool
 
-        public init(url: String = "", token: String? = nil, timeout_seconds: Double = 30) {
+        public init(url: String = "", token: String? = nil, timeout_seconds: Double = 30, allow_insecure_http: Bool = false) {
             self.url = url; self.token = token; self.timeout_seconds = timeout_seconds
+            self.allow_insecure_http = allow_insecure_http
         }
 
         public init(from decoder: Decoder) throws {
@@ -22,6 +26,7 @@ public struct HelperConfig: Codable, Sendable {
             url = try c.decodeIfPresent(String.self, forKey: .url) ?? d.url
             token = try c.decodeIfPresent(String.self, forKey: .token)
             timeout_seconds = try c.decodeIfPresent(Double.self, forKey: .timeout_seconds) ?? d.timeout_seconds
+            allow_insecure_http = try c.decodeIfPresent(Bool.self, forKey: .allow_insecure_http) ?? d.allow_insecure_http
         }
     }
 
@@ -119,6 +124,13 @@ public struct HelperConfig: Codable, Sendable {
         server = try c.decodeIfPresent(Server.self, forKey: .server) ?? d.server
         bundle_id = try c.decodeIfPresent(String.self, forKey: .bundle_id).flatMap { $0.isEmpty ? nil : $0 } ?? d.bundle_id
         launch_agent_label = try c.decodeIfPresent(String.self, forKey: .launch_agent_label).flatMap { $0.isEmpty ? nil : $0 }
+        // Both name files (the LaunchAgent plist) and launchd services: reverse-DNS only.
+        for (key, value) in [(CodingKeys.bundle_id, Optional(bundle_id)), (.launch_agent_label, launch_agent_label)] {
+            if let value, !Self.isReverseDNS(value) {
+                throw DecodingError.dataCorruptedError(forKey: key, in: c, debugDescription:
+                    "\(key.stringValue) must be a reverse-DNS name such as org.example.helper (letters, digits, '-', dot-separated)")
+            }
+        }
         keychain = try c.decodeIfPresent(Keychain.self, forKey: .keychain) ?? d.keychain
         host = try c.decodeIfPresent(String.self, forKey: .host)
         heartbeat_seconds = try c.decodeIfPresent(Double.self, forKey: .heartbeat_seconds) ?? d.heartbeat_seconds
@@ -129,16 +141,56 @@ public struct HelperConfig: Codable, Sendable {
 
     // MARK: derived
 
-    /// Server base URL without a trailing slash; nil when unset or not an http(s) URL.
+    /// Server base URL without a trailing slash; nil when unset, not an http(s) URL, or plain
+    /// http to another host without `server.allow_insecure_http` (`serverURLProblem` says which).
     public var serverURL: URL? {
-        var s = server.url.trimmingCharacters(in: .whitespaces)
-        while s.hasSuffix("/") { s.removeLast() }
-        guard !s.isEmpty, let u = URL(string: s), let scheme = u.scheme?.lowercased(),
-              scheme == "https" || scheme == "http", u.host != nil else { return nil }
+        guard let (u, insecure) = parsedServerURL, !insecure || server.allow_insecure_http else { return nil }
         return u
     }
 
+    /// Why `serverURL` is nil, or nil when it is usable.
+    public var serverURLProblem: String? {
+        guard let (_, insecure) = parsedServerURL else { return "server.url is unset or not an http(s) URL" }
+        if insecure && !server.allow_insecure_http {
+            return "server.url uses plain http to another host, so the token would travel unencrypted; "
+                + "use https, or set server.allow_insecure_http to true for a network you trust"
+        }
+        return nil
+    }
+
+    /// True when the url in use is plain http to a host other than this Mac (allowed explicitly).
+    public var usesInsecureHTTP: Bool { parsedServerURL?.insecure == true && server.allow_insecure_http }
+
+    private var parsedServerURL: (url: URL, insecure: Bool)? {
+        var s = server.url.trimmingCharacters(in: .whitespaces)
+        while s.hasSuffix("/") { s.removeLast() }
+        guard !s.isEmpty, let u = URL(string: s), let scheme = u.scheme?.lowercased(),
+              scheme == "https" || scheme == "http", let host = u.host, !host.isEmpty else { return nil }
+        return (u, scheme == "http" && !Self.isLoopback(host))
+    }
+
+    /// localhost, *.localhost, 127.0.0.0/8 and ::1.
+    public static func isLoopback(_ host: String) -> Bool {
+        let h = host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+        if h == "localhost" || h.hasSuffix(".localhost") || h == "::1" { return true }
+        let parts = h.split(separator: ".", omittingEmptySubsequences: false)
+        return parts.count == 4 && parts[0] == "127" && parts.allSatisfy { UInt8($0) != nil }
+    }
+
+    /// A reverse-DNS name: at least two dot-separated labels of letters, digits and '-'.
+    public static func isReverseDNS(_ name: String) -> Bool {
+        let labels = name.split(separator: ".", omittingEmptySubsequences: false)
+        guard labels.count >= 2, name.utf8.count <= 255 else { return false }
+        return labels.allSatisfy { label in
+            !label.isEmpty && label.utf8.allSatisfy { c in
+                (c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || c == 0x2D
+            }
+        }
+    }
+
     public var launchAgentLabel: String { launch_agent_label ?? bundle_id }
+    /// Whether the config file itself holds the token.
+    public var holdsToken: Bool { !(server.token ?? "").isEmpty }
     public var keychainService: String { keychain.service.flatMap { $0.isEmpty ? nil : $0 } ?? bundle_id }
     public var keychainAccount: String { keychain.account.isEmpty ? "ingest-token" : keychain.account }
 
@@ -168,6 +220,22 @@ public struct HelperConfig: Codable, Sendable {
             case .invalid(let p, let e): return "invalid JSON in \(p): \(e)"
             }
         }
+    }
+
+    /// What is wrong with the config file's permissions, or nil. `refuse`: anyone else may write
+    /// it, so they could point the token (from the config or the Keychain) at another server.
+    /// Otherwise a warning: it holds the token and others may read it.
+    public static func permissionProblem(path: String, holdsToken: Bool) -> (message: String, refuse: Bool)? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+              let perms = (attrs[.posixPermissions] as? NSNumber)?.intValue else { return nil }
+        let mode = String(perms & 0o777, radix: 8)
+        if perms & 0o022 != 0 {
+            return ("\(path) is writable by other users (mode \(mode)); run: chmod 600 \"\(path)\"", true)
+        }
+        if holdsToken && perms & 0o044 != 0 {
+            return ("\(path) holds the token and is readable by other users (mode \(mode)); run: chmod 600 \"\(path)\"", false)
+        }
+        return nil
     }
 
     /// Loads the config; a missing file yields defaults (`exists == false`).

@@ -44,6 +44,9 @@ Tasks needs write access (`auth/tasks`, not read-only), because changes go both 
 - **Moving** a reminder works between lists of the same Google account. Moving between
   accounts, or between Google and Apple, is refused: create it in the other list instead.
 - Subtasks show as ordinary reminders; their nesting is not shown.
+- **Size.** The poll asks for open tasks and those completed in the last 30 days only
+  (`completedMin`). A list with more than 5,000 such tasks fails the poll with an error saying
+  so, rather than mirroring part of it (the rest would look deleted).
 
 Each Google account has its own freshness entry (`reminders:<account id>`), shown at the foot
 of the list sidebar and on `GET /api/reminders/status`. Removing the account in Settings removes
@@ -81,11 +84,16 @@ with its queued ops applied on top, so the change appears at once. Each reminder
 | State | Meaning |
 |---|---|
 | `synced` | The provider has every change. |
-| `syncing` | A change is on its way: queued, or applied and not yet mirrored back. A Google change normally skips this, since the server applies it before answering. A Google change that hit a network error stays here and is retried by the next poll (5 attempts). |
+| `syncing` | A change is on its way: queued, or applied and not yet mirrored back. A Google change normally skips this, since the server applies it before answering. A Google change that hit a network error stays here and is retried by the next poll (5 attempts). A Google add is never made twice: its answer may have been lost after Google saved it, so before every try the server looks for the task in that list (same title, notes and due date, changed since the add was queued, and not a task the organizer already knew) and adopts it if it is there. |
 | `waiting_for_device` | An Apple change has been queued for over 2 minutes and the helper has not polled in 2 minutes: the Mac is asleep or the helper is off. Shown as "waiting for Mac". |
 | `failed` | The provider refused the change (shown with its error). **Retry** queues it again; **Withdraw** drops it. Withdrawing the create of a reminder the provider never got removes it. |
 
 A new reminder gets its organizer id at once and keeps it when the provider reports it.
+
+An op's progress (its state, when it was applied, the provider id it produced) records what its
+applier did at the provider, so History refuses to revert it: setting an applied op back to
+pending would apply it twice. Undo a change by changing the reminder again; drop a queued one
+with **Withdraw** (or by reverting the op's creation in History).
 
 ## The sync rules
 
@@ -111,11 +119,31 @@ does nothing). Un-completing yields to a completion made at the provider after i
 **Deletions.** A reminder that disappears from the provider is removed from the organizer at the
 next sync, and its pending ops fail ("the reminder is gone from ..."). A new reminder's
 placeholder survives while its create is pending or failed, and for 10 minutes after it was
-applied, in case the snapshot was collected before the create.
+applied, in case the snapshot was collected before the create. A Google poll compares with the
+time it *started*: a reminder the server wrote while the poll was reading (a create or change
+applied meanwhile) is newer than the poll, and is neither overwritten nor removed by it.
+
+**Lists.** A snapshot files reminders only under its own lists: an Apple reminder whose list
+is not in the same snapshot (a Google list id, say) is dropped.
 
 **Identity.** Apple reminders are matched by `calendarItemExternalIdentifier`, then by the
 device-local `calendarItemIdentifier`, so a late external id keeps the row and its organizer id.
 Google tasks are matched by task id within their account. Lists are keyed by their provider id.
+
+Organizer ids of reminders and ops are never reused, even after a reminder is deleted. Each op
+also records its target when it is queued (source, account, provider ids), and is applied,
+retried or shown only while its reminder row still is that reminder; otherwise it fails with
+"the reminder this change was for is gone" and Retry is refused.
+
+A create's result may name a reminder a sync already brought in (collected between the create
+and its result); that row is folded into the new reminder's placeholder only if it first
+arrived *after* the op was queued. A result that names an older reminder fails the op instead
+of taking that reminder over.
+
+**Server instance.** `GET /api/ingest/reminders/ops` carries `instance_id`, a random id made
+once per database. Op ids are unique only within one database (a recreated one starts again at
+1), so the helper keys what it remembers about ops by (instance, op id), and sends the instance
+back with each ack; an ack for another instance is refused (409) and the helper drops it.
 
 ## Endpoints
 
@@ -128,3 +156,7 @@ and `/uncomplete`, `GET /api/reminders/ops`, `POST /api/reminders/ops/{id}/retry
 Mac helper (`ingest` scope): `POST /api/ingest/reminders`, `GET /api/ingest/reminders/ops`,
 `POST /api/ingest/reminders/ops/{id}/ack`. The wire format is in the docstrings of
 `server/app/modules/reminders/ingest.py`, and the OpenAPI schema at `/docs`.
+
+Sizes are bounded, and a request over a bound is refused (422): a snapshot holds at most 500
+lists and 20,000 reminders; a title up to 5,000 characters, notes up to 100,000 (also for
+reminders made or edited in the organizer), a url up to 4,000; an ack up to 50 conflicts.

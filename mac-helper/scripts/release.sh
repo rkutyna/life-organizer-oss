@@ -40,8 +40,9 @@ die() { echo "release.sh: $*" >&2; exit 1; }
 for tool in swift lipo codesign ditto plutil shasum; do
   command -v "$tool" >/dev/null || die "$tool not found (install the Xcode command line tools)"
 done
-if [[ ! "$bundle_id" =~ ^[A-Za-z0-9.-]+$ ]]; then
-  die "BUNDLE_ID '$bundle_id' may hold only letters, digits, '.' and '-'"
+reverse_dns='^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$'
+if [[ ! "$bundle_id" =~ $reverse_dns ]]; then
+  die "BUNDLE_ID '$bundle_id' is not a reverse-DNS name such as org.example.helper"
 fi
 
 if [[ $unsigned -eq 0 ]]; then

@@ -2,7 +2,8 @@
   "server": {
     "url": "https://organizer.example.com",
     "token": null,
-    "timeout_seconds": 30
+    "timeout_seconds": 30,
+    "allow_insecure_http": false
   },
   "bundle_id": "com.lifeorganizerformac.helper",
   "launch_agent_label": null,

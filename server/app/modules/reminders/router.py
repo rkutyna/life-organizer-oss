@@ -163,7 +163,7 @@ def retry_op(
     op = get_or_404(session, ReminderOp, op_id)
     if op.state != "failed":
         raise HTTPException(409, f"only a failed op can be retried (this one is {op.state})")
-    service.retry(session, settings, op, author)
+    _refusals(lambda: service.retry(session, settings, op, author))
     session.refresh(op)
     return sync.op_out(op)
 

@@ -3,10 +3,16 @@
 
 - `POST /api/ingest/reminders`: a full snapshot of every Apple Reminders list. Apple lists and
   reminders are replaced (anything absent is gone); Google Tasks rows are untouched.
-- `GET /api/ingest/reminders/ops`: pending Apple ops, oldest first. Each call records that the
-  helper is polling, which is what tells "syncing" from "waiting for the device". Google ops
-  never appear here: the server applies them itself.
-- `POST /api/ingest/reminders/ops/{id}/ack`: the result of applying one op.
+- `GET /api/ingest/reminders/ops`: pending Apple ops, oldest first, and `instance_id`, this
+  database's identity. Each call records that the helper is polling, which is what tells
+  "syncing" from "waiting for the device". Google ops never appear here: the server applies
+  them itself. An op whose reminder is gone (or is no longer the one it was queued for) is
+  failed instead of sent.
+- `POST /api/ingest/reminders/ops/{id}/ack`: the result of applying one op. The helper sends
+  back the `instance_id` it got the op with; an ack for another instance is refused (409).
+
+Sizes are bounded: at most MAX_LISTS lists and MAX_REMINDERS reminders per snapshot, titles,
+notes and urls up to MAX_TITLE, MAX_NOTES and MAX_URL characters (a larger snapshot is a 422).
 
 Mirrored rows are written directly (rule 4 covers owned records only); op state goes through
 app.audit.
@@ -24,10 +30,17 @@ from app.deps import AuthorDep, SessionDep
 from app.modules.reminders import sync
 from app.modules.reminders.accounts import HELPER_SOURCE
 from app.modules.reminders.models import ReminderOp
-from app.modules.reminders.schemas import OpFieldValue, OpKind, ReminderOpOut
+from app.modules.reminders.schemas import MAX_NOTES, OpFieldValue, OpKind, ReminderOpOut
 from app.timeutil import utcnow
 
 router = APIRouter()
+
+MAX_LISTS = 500
+MAX_REMINDERS = 20_000
+MAX_TITLE = 5_000
+MAX_URL = 4_000
+MAX_CONFLICTS = 50
+MAX_ERROR = 2_000
 
 _HEX_COLOR = re.compile(r"#?([0-9A-Fa-f]{6})(?:[0-9A-Fa-f]{2})?")
 
@@ -45,10 +58,10 @@ def normalize_color(value: str | None) -> str | None:
 
 class ReminderListIn(BaseModel):
     id: str = Field(min_length=1, max_length=1000, description="EKCalendar.calendarIdentifier")
-    title: str = ""
-    color: str | None = None
-    account: str | None = None
-    account_type: str | None = None
+    title: str = Field(default="", max_length=500)
+    color: str | None = Field(default=None, max_length=16)
+    account: str | None = Field(default=None, max_length=500)
+    account_type: str | None = Field(default=None, max_length=32)
     writable: bool = True
 
 
@@ -57,15 +70,15 @@ class ReminderIn(BaseModel):
         default=None, max_length=1000, description="calendarItemExternalIdentifier"
     )
     local_id: str = Field(min_length=1, max_length=1000, description="calendarItemIdentifier")
-    list_id: str
-    title: str = ""
-    notes: str | None = None
+    list_id: str = Field(max_length=1000, description="One of the snapshot's own lists")
+    title: str = Field(default="", max_length=MAX_TITLE)
+    notes: str | None = Field(default=None, max_length=MAX_NOTES)
     due_date: date | None = None
     due_time: time | None = Field(default=None, description="HH:MM, local wall clock")
     priority: int | None = Field(default=None, ge=1, le=3)
     completed: bool = False
     completed_at: datetime | None = None
-    url: str | None = None
+    url: str | None = Field(default=None, max_length=MAX_URL)
     created_at: datetime | None = None
     modified_at: datetime | None = None
 
@@ -76,9 +89,12 @@ class ReminderIn(BaseModel):
 
 
 class RemindersPushIn(BaseModel):
-    lists: list[ReminderListIn]
-    default_list_id: str | None = None
-    reminders: list[ReminderIn]
+    lists: list[ReminderListIn] = Field(max_length=MAX_LISTS)
+    default_list_id: str | None = Field(default=None, max_length=1000)
+    reminders: list[ReminderIn] = Field(
+        max_length=MAX_REMINDERS,
+        description="A reminder whose list_id is not in `lists` is dropped",
+    )
 
 
 class RemindersPushOut(BaseModel):
@@ -154,6 +170,10 @@ class HelperOpOut(BaseModel):
 class HelperOpsOut(BaseModel):
     ops: list[HelperOpOut]
     server_time: datetime
+    instance_id: str = Field(
+        description="This database's identity, stable for its life. Op ids are unique within "
+        "it only: key anything remembered about an op by (instance_id, id)."
+    )
 
 
 @router.get("/reminders/ops", response_model=HelperOpsOut)
@@ -161,42 +181,51 @@ def pending_ops(session: SessionDep) -> HelperOpsOut:
     """Pending Apple ops in queue order. Apply them in this order, per reminder."""
     now = utcnow()
     sync.record_ops_poll(session, now)
-    out = []
-    for op, row in sync.pending_for(session, "helper"):
-        out.append(
-            HelperOpOut(
-                id=op.id,
-                reminder_id=op.reminder_id,
-                kind=op.kind,  # type: ignore[arg-type]
-                external_id=row.ext_id if row else op.ext_id,
-                local_id=row.local_id if row else op.local_id,
-                fields=dict(op.payload or {}),
-                base=dict(op.base or {}),
-                queued_at=op.created_at,
-            )
+    instance = sync.instance_id(session)
+    with audit.transaction(session):
+        pending = sync.fail_stale(session, sync.pending_for(session, "helper"), sync.SYSTEM)
+    out = [
+        HelperOpOut(
+            id=op.id,
+            reminder_id=op.reminder_id,
+            kind=op.kind,  # type: ignore[arg-type]
+            external_id=row.ext_id,
+            local_id=row.local_id,
+            fields=dict(op.payload or {}),
+            base=dict(op.base or {}),
+            queued_at=op.created_at,
         )
-    return HelperOpsOut(ops=out, server_time=now)
+        for op, row in pending
+    ]
+    return HelperOpsOut(ops=out, server_time=now, instance_id=instance)
 
 
 class ConflictIn(BaseModel):
-    field: str
+    field: str = Field(max_length=32)
     kept: Literal["provider", "organizer"]
-    provider_value: str | None = None
-    organizer_value: str | None = None
+    provider_value: str | None = Field(default=None, max_length=MAX_NOTES)
+    organizer_value: str | None = Field(default=None, max_length=MAX_NOTES)
 
 
 class AckIn(BaseModel):
     ok: bool
-    external_id: str | None = None
-    local_id: str | None = None
-    error: str | None = None
-    conflicts: list[ConflictIn] = Field(default_factory=list)
+    external_id: str | None = Field(default=None, max_length=1000)
+    local_id: str | None = Field(default=None, max_length=1000)
+    error: str | None = Field(default=None, max_length=MAX_ERROR * 5)
+    conflicts: list[ConflictIn] = Field(default_factory=list, max_length=MAX_CONFLICTS)
+    instance_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="The instance_id the op was fetched with; another instance's ack is a 409",
+    )
 
 
 @router.post("/reminders/ops/{op_id}/ack", response_model=ReminderOpOut)
 def ack_op(op_id: int, payload: AckIn, session: SessionDep, author: AuthorDep) -> ReminderOpOut:
     """Record what applying one op did. An op withdrawn in the organizer meanwhile is a 404;
     the helper drops it (whatever it changed is mirrored by the next push)."""
+    if payload.instance_id is not None and payload.instance_id != sync.instance_id(session):
+        raise HTTPException(409, "this op came from another server instance; drop it")
     op = session.get(ReminderOp, op_id)
     if op is None or op.deleted_at is not None or op.applier != "helper":
         raise HTTPException(404, f"op {op_id} not found (withdrawn?)")
