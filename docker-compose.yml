@@ -13,7 +13,6 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile
-    image: organizer:latest
     ports:
       - "127.0.0.1:${ORGANIZER_PORT:-8600}:8600"
     environment:
@@ -24,6 +23,7 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MAIL_WINDOW_DAYS: ${MAIL_WINDOW_DAYS:-30}
     volumes:
       - organizer-data:/app/server/data
     restart: unless-stopped
@@ -36,7 +36,6 @@ services:
     profiles: ["mcp"]
     build:
       context: ./mcp
-    image: organizer-mcp:latest
     depends_on:
       - organizer
     ports:
@@ -62,7 +61,6 @@ services:
     profiles: ["mcp-mail"]
     build:
       context: ./mcp
-    image: organizer-mcp:latest
     depends_on:
       - organizer
     ports:

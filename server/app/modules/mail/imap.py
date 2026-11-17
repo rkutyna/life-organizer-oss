@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import imaplib
 import re
+import socket
 import ssl
 from collections.abc import Callable
 from datetime import date, datetime
@@ -163,6 +164,20 @@ def default_connect(host: str, port: int) -> Any:
     return imaplib.IMAP4_SSL(host, port, ssl_context=tls_context(), timeout=TIMEOUT_SECONDS)
 
 
+def _unreachable(host: str, port: int, exc: BaseException) -> str:
+    """Why a connection failed, in words a person can act on."""
+    where = f"{host}:{port}"
+    if isinstance(exc, socket.gaierror):
+        return f"no server called {host} was found; check the host name"
+    if isinstance(exc, ssl.SSLCertVerificationError):
+        return f"{where} did not present a trusted certificate for that name"
+    if isinstance(exc, ConnectionRefusedError):
+        return f"{where} refused the connection; check the host and port"
+    if isinstance(exc, TimeoutError | socket.timeout):
+        return f"{where} did not answer in time"
+    return f"IMAP unreachable at {where} ({type(exc).__name__})"
+
+
 class ImapSource:
     def __init__(
         self,
@@ -189,7 +204,7 @@ class ImapSource:
             try:
                 conn = self._connect(self._host, self._port)
             except (OSError, imaplib.IMAP4.error) as exc:
-                raise MailError(f"IMAP unreachable at {self._host}:{self._port}: {exc}") from None
+                raise MailError(_unreachable(self._host, self._port, exc)) from None
             imap = ReadOnlyIMAP(conn)
             imap.login(self._username, self._password)
             self._imap = imap

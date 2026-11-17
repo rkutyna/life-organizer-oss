@@ -25,7 +25,8 @@ the Calendar app, local calendars included.
 
 ### From a release
 
-Download the latest release:
+When a signed release is published on the project's Releases page, download it. Until then (or
+if you prefer), build from source as below. A release:
 
 - **`.pkg`** (signed, notarized and stapled): double-click it. It installs `/usr/local/bin/organizer-helper`.
 - **`.zip`** (signed and notarized; a bare program cannot be stapled): unzip it and move the program onto your

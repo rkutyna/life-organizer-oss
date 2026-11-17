@@ -34,8 +34,20 @@ the organizer's history shows it on every write.
 
 An `api` token cannot read mail, and a `mail` token reads nothing else. A server refuses to start
 without the token its toolsets need, and names the variable to set. `ORGANIZER_URL` is the
-organizer's address (default `http://localhost:8600`); `ORGANIZER_TIMEOUT` is in seconds
-(default 15).
+organizer's address (default `http://localhost:8600`; set it if you changed `ORGANIZER_PORT` or
+reach the organizer elsewhere); `ORGANIZER_TIMEOUT` is in seconds (default 15).
+
+### Checking it without Claude
+
+From `mcp/`, with a token from Settings → API tokens:
+
+```bash
+ORGANIZER_URL=http://localhost:8600 ORGANIZER_TOKEN=org_... uv run organizer-mcp
+```
+
+It speaks MCP over stdio. Any MCP client (or the MCP Inspector, `npx @modelcontextprotocol/inspector
+uv run organizer-mcp`) can list its tools and call one, e.g. `calendar` with `start` and `end`
+(ISO dates or datetimes; both are required).
 
 ## Claude Code (stdio)
 

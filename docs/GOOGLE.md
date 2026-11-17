@@ -12,11 +12,13 @@ In [Google Cloud Console](https://console.cloud.google.com/):
 2. **Enable the APIs.** Under APIs & Services → Library, enable the **Google Calendar API** and the
    **Gmail API**, and the **Google Tasks API** for reminders.
 3. **Set up the OAuth consent screen** (Google Auth Platform → Branding, Audience, Data access):
-   - User type: **External**. Add your own Google address(es) as test users.
+   - **Get started** asks for an app name (anything, e.g. "My organizer"), a support email (yours)
+     and the user type: **External**.
    - Data access: add the scopes `.../auth/calendar.readonly` and `.../auth/gmail.readonly`, and
      `.../auth/tasks` for reminders.
    - Audience: **Publish the app** ("In production"). While an app is in *Testing*, Google expires
-     its sign-ins after 7 days, and the organizer would ask you to reconnect every week.
+     its sign-ins after 7 days, and the organizer would ask you to reconnect every week. Test users
+     only matter in Testing mode; once published you don't need to add any.
 4. **Create credentials** → OAuth client ID → type **Web application**. Under *Authorized redirect
    URIs*, add the URI shown in the organizer at Settings → Connected accounts → Add account →
    Google account. It is your organizer's address followed by `/api/oauth/google/callback`.
@@ -29,7 +31,8 @@ In [Google Cloud Console](https://console.cloud.google.com/):
    PUBLIC_BASE_URL=https://organizer.example.com   # if a proxy hides the real address
    ```
 
-   Then restart: `docker compose up -d`.
+   Then apply it with `docker compose up -d` (a plain `docker compose restart` does not read
+   `.env` again).
 
 ### "Google hasn't verified this app"
 

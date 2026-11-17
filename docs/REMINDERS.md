@@ -10,7 +10,7 @@ supported, and you can use both at once:
 | **Apple Reminders** | The Mac helper pushes a snapshot every few minutes and whenever Reminders changes | The Mac helper polls the change queue every 30 seconds and applies each change with EventKit | A Mac signed in to your iCloud account, running the helper (`mac-helper/README.md`) |
 
 iCloud's reminders cannot be read over CalDAV, so Apple Reminders needs the Mac helper. Apple
-*Calendar* does not: CalDAV covers it without a Mac (docs/GOOGLE.md and Settings).
+*Calendar* does not: CalDAV covers it without a Mac (docs/CALENDAR.md and Settings).
 
 What you get:
 - **Reminders page** (`/reminders`, `g r`): your lists grouped by account, then Overdue, Today,
@@ -155,7 +155,8 @@ and `/uncomplete`, `GET /api/reminders/ops`, `POST /api/reminders/ops/{id}/retry
 
 Mac helper (`ingest` scope): `POST /api/ingest/reminders`, `GET /api/ingest/reminders/ops`,
 `POST /api/ingest/reminders/ops/{id}/ack`. The wire format is in the docstrings of
-`server/app/modules/reminders/ingest.py`, and the OpenAPI schema at `/docs`.
+`server/app/modules/reminders/ingest.py`, and the OpenAPI schema at `/docs` on a development server started with `EXPOSE_API_DOCS=true`
+(it is off in production).
 
 Sizes are bounded, and a request over a bound is refused (422): a snapshot holds at most 500
 lists and 20,000 reminders; a title up to 5,000 characters, notes up to 100,000 (also for

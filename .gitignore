@@ -11,3 +11,6 @@ dist/
 .DS_Store
 .build/
 DerivedData/
+*.db
+*.db-wal
+*.db-shm

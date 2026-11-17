@@ -344,3 +344,16 @@ def test_imap_checks_the_server_certificate(monkeypatch) -> None:
     monkeypatch.setattr(imap.imaplib, "IMAP4_SSL", fake_ssl)
     imap.default_connect("imap.example.com", 993)
     assert seen["ssl_context"].verify_mode == ssl.CERT_REQUIRED
+
+
+def test_connect_errors_read_plainly() -> None:
+    import socket
+    import ssl
+
+    assert "no server called imap.example.invalid" in imap._unreachable(
+        "imap.example.invalid", 993, socket.gaierror(-2, "Name or service not known")
+    )
+    assert "trusted certificate" in imap._unreachable(
+        "imap.example.com", 993, ssl.SSLCertVerificationError("bad cert")
+    )
+    assert "refused" in imap._unreachable("imap.example.com", 993, ConnectionRefusedError())

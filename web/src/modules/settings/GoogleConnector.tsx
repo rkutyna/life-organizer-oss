@@ -69,7 +69,7 @@ export function GoogleConnector({ onCancel }: AccountConnectorProps) {
             </li>
             <li>
               Put its ID and secret in <code>.env</code> as <code>GOOGLE_CLIENT_ID</code> and{" "}
-              <code>GOOGLE_CLIENT_SECRET</code>, then restart the organizer.
+              <code>GOOGLE_CLIENT_SECRET</code>, then run <code>docker compose up -d</code> (a plain restart does not read <code>.env</code> again).
             </li>
           </ol>
           <p>The full steps are in docs/GOOGLE.md.</p>

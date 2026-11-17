@@ -6,7 +6,7 @@ Docker Compose.
 ## 1. Start it
 
 ```bash
-git clone <this repo> organizer && cd organizer
+git clone <this repo> life-organizer && cd life-organizer
 cp .env.example .env
 openssl rand -base64 32        # paste the output after ORGANIZER_SECRET_KEY= in .env
 docker compose up -d --build
@@ -67,33 +67,54 @@ The database is a single SQLite file in the `organizer-data` Docker volume. To c
 safely while the app runs:
 
 ```bash
+mkdir -p ~/organizer-backups
 docker compose exec organizer python -c "import sqlite3; s=sqlite3.connect('data/organizer.db'); d=sqlite3.connect('data/backup.db'); s.backup(d); d.close()"
-docker compose cp organizer:/app/server/data/backup.db ./organizer-backup.db
+docker compose cp organizer:/app/server/data/backup.db ~/organizer-backups/organizer-$(date +%F).db
+docker compose exec organizer rm data/backup.db
 ```
 
-Store the backup apart from your `.env`.
+`organizer` is the service name, so these work whatever the project or folder is called. Keep
+backups outside the repo folder (it holds your personal data), and apart from your `.env`.
+
+### Restoring
+
+```bash
+docker compose stop organizer
+docker compose cp ~/organizer-backups/organizer-YYYY-MM-DD.db organizer:/app/server/data/organizer.db
+docker compose start organizer
+```
+
+The container must have been created once (`docker compose up -d`). A restore replaces
+everything since the backup. Connected accounts still need the same `ORGANIZER_SECRET_KEY`.
 
 ## Demo data
 
 To look around before connecting anything, fill a separate, fresh database with made-up data.
-This needs the development setup below. It never touches an install that is already set up.
+This needs the development tools below (uv, Node), not Docker. It never touches an install that
+is already set up. Port 8601 is used so it can run beside a Docker install on 8600.
 
 ```bash
+cd web && npm install && npm run build && cd ..          # the server serves this build
 cd server && export DATABASE_URL=sqlite:///./data/demo.db
 uv run alembic upgrade head
 uv run python -m app.demo_seed --password "demo password 1"
-SCHEDULER_ENABLED=false WEB_DIST=../web/dist uv run uvicorn app.main:app --port 8600
+SCHEDULER_ENABLED=false WEB_DIST=../web/dist uv run uvicorn app.main:app --port 8601
 ```
 
-Sign in with that password. The demo accounts have no real server behind them, which is why
+Open http://localhost:8601 and sign in with that password. The demo accounts have no real server behind them, which is why
 the scheduler is off and opening a demo message shows a connection error.
 
 ## Development
 
 ```bash
-cd server && uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8600
-cd web && npm install && npm run dev      # http://localhost:5173, proxies /api to :8600
+cd server && uv sync && uv run alembic upgrade head
+EXPOSE_API_DOCS=true uv run uvicorn app.main:app --reload --port 8601   # API docs at /docs
+cd web && npm install && API_URL=http://localhost:8601 npm run dev      # http://localhost:5173
 ```
+
+The web dev server proxies `/api` to `API_URL` (default `http://localhost:8600`); the examples
+use 8601 so development never collides with a Docker install. `npm run gen:api` reads the same
+`API_URL` and needs the server started with `EXPOSE_API_DOCS=true`.
 
 Before committing, run `git config core.hooksPath .githooks` once per clone. The pre-commit hook
 runs `scripts/scrub-check.sh`.
