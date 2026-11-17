@@ -475,3 +475,20 @@ def test_tags_are_listed_once(client):
     company(client, "Acme Corp", tags=["Remote"])
     application(client, title="X", tags=["remote", "referral"])
     assert client.get("/api/jobs/tags").json() == {"tags": ["referral", "Remote"]}
+
+
+def test_found_on_due_by_and_moving_an_interview(client):
+    found = (today_local() - dt.timedelta(days=2)).isoformat()
+    open_lead = lead(client, title="Lead", found_on=found)
+    assert open_lead["found_on"] == found
+    due = application(client, title="Due", next_action="Call", next_action_due="2026-11-18")
+    application(client, title="Later", next_action_due="2026-12-30")
+    listed = client.get("/api/jobs/applications", params={"due_by": "2026-11-20"}).json()
+    assert [a["id"] for a in listed] == [due["id"]]
+    interview = client.post("/api/jobs/interviews", json={"application_id": due["id"]}).json()
+    r = client.patch(
+        f"/api/jobs/interviews/{interview['id']}", json={"application_id": open_lead["id"]}
+    )
+    assert r.json()["application_title"] == "Lead"
+    r = client.patch(f"/api/jobs/interviews/{interview['id']}", json={"application_id": 999})
+    assert r.status_code == 422

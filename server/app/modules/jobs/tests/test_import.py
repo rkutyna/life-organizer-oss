@@ -223,3 +223,10 @@ def test_oversized_file_is_refused(client, size):
 def test_dry_run_writes_nothing(client, session):
     client.post("/api/jobs/import/dry-run", json=spec())
     assert session.scalars(select(Application)).all() == []
+
+
+def test_preview_lists_reached_values_too(client):
+    csv = "Company,Title,Status,Furthest\nAcme Corp,Engineer,Rejected,Final loop\n"
+    mapping = {"Company": "company", "Title": "title", "Status": "status", "Furthest": "reached"}
+    p = client.post("/api/jobs/import/preview", json={"csv": csv, "mapping": mapping}).json()
+    assert {v["value"] for v in p["status_values"]} == {"Rejected", "Final loop"}

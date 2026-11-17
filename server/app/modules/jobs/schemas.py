@@ -164,6 +164,7 @@ class ApplicationOut(_Record):
     reached: str | None = Field(
         description="The furthest active stage in its history (None for a lead)"
     )
+    found_on: dt.date | None = Field(description="The day it was logged as a lead, if it was one")
 
 
 class ApplicationCreatedOut(ApplicationOut):
@@ -279,6 +280,7 @@ class InterviewCreate(BaseModel):
 
 
 class InterviewUpdate(BaseModel):
+    application_id: int | None = None
     stage: str | None = Field(default=None, max_length=100)
     on_date: dt.date | None = None
     start_time: dt.time | None = None

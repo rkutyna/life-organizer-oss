@@ -46,7 +46,10 @@ class JobsImportPreviewOut(BaseModel):
     mapping: dict[str, str | None]
     targets: list[JobsImportTarget]
     status_column: str | None
-    status_values: list[JobsImportStatusValue]
+    status_values: list[JobsImportStatusValue] = Field(
+        description="Distinct values of the columns mapped to status and reached (furthest "
+        "stage); one status_map covers both"
+    )
     day_first_suggested: bool = Field(description="Some dates only read as day/month/year")
 
 

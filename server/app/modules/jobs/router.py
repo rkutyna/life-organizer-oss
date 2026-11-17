@@ -267,9 +267,28 @@ def delete_company(company_id: int, session: SessionDep, author: AuthorDep) -> N
 def _application_outs(
     session: Session, rows: list[tuple[Application, str]]
 ) -> list[ApplicationOut]:
-    reached = pipeline.reached_by_application(session, [a.id for a, _ in rows])
+    ids = [a.id for a, _ in rows]
+    reached = pipeline.reached_by_application(session, ids)
+    found: dict[int, dt.date] = {}
+    if ids:
+        for application_id, on_date in session.execute(
+            select(ApplicationStatusEvent.application_id, ApplicationStatusEvent.on_date)
+            .where(
+                ApplicationStatusEvent.application_id.in_(ids),
+                ApplicationStatusEvent.status == statuses.LEAD,
+            )
+            .order_by(ApplicationStatusEvent.on_date)
+        ):
+            found.setdefault(application_id, on_date)
     return [
-        ApplicationOut.model_validate({**_attrs(a), "company": name, "reached": reached.get(a.id)})
+        ApplicationOut.model_validate(
+            {
+                **_attrs(a),
+                "company": name,
+                "reached": reached.get(a.id),
+                "found_on": found.get(a.id),
+            }
+        )
         for a, name in rows
     ]
 
@@ -316,6 +335,7 @@ def list_applications(
         "exclude", description="Leads (open and dropped) are left out unless asked for"
     ),
     sort: Literal["-date_applied", "date_applied", "-updated_at", "-id"] = "-date_applied",
+    due_by: dt.date | None = Query(None, description="Only next actions due on or before"),
     limit: int = Query(1000, ge=1, le=5000),
 ) -> list[ApplicationOut]:
     """Applications, newest applied first by default; undated ones last. /pipeline counts the
@@ -331,6 +351,10 @@ def list_applications(
     else:
         keys = [s.key for s in defs if s.key not in lead_keys]
     rows = pipeline.filtered_rows(session, filters, keys)
+    if due_by is not None:
+        rows = [
+            (a, c) for a, c in rows if a.next_action_due is not None and a.next_action_due <= due_by
+        ]
     rows.sort(key=lambda pair: _SORTS[sort](pair[0]))
     return _application_outs(session, [(a, c.name) for a, c in rows[:limit]])
 
@@ -703,6 +727,10 @@ def update_interview(
 ) -> InterviewOut:
     interview = get_or_404(session, Interview, interview_id)
     changes = payload.model_dump(exclude_unset=True)
+    if "application_id" in changes:
+        if changes["application_id"] is None:
+            raise HTTPException(422, "an interview needs an application")
+        _require_live(session, Application, changes["application_id"], "application")
     for key in ("stage", "location", "interviewer", "notes"):
         if key in changes and changes[key] is None:
             changes[key] = ""

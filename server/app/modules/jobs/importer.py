@@ -858,9 +858,9 @@ def preview(
         chosen = {h: mapping.get(h) for h in headers}
     status_header = next((h for h, t in chosen.items() if t == "status"), None)
     values: list[dict[str, Any]] = []
-    if status_header is not None:
-        column = headers.index(status_header)
-        counts = Counter(r[column] for r in rows if r[column])
+    value_columns = [headers.index(h) for h, t in chosen.items() if t in ("status", "reached")]
+    if value_columns:
+        counts = Counter(r[c] for r in rows for c in value_columns if r[c])
         by_fold: dict[str, tuple[str, int]] = {}
         for value, n in counts.most_common():
             folded = fold_name(value)
