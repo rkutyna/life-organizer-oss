@@ -417,6 +417,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/calendar_ext/calendars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Calendars
+         * @description Every calendar the calendar shows, grouped by account, each account with its age.
+         */
+        get: operations["calendar_ext_list_calendars"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar_ext/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Now
+         * @description Poll every enabled calendar account now. Failures are reported per account.
+         */
+        post: operations["calendar_ext_sync_now"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar_ext/accounts/caldav": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect Caldav
+         * @description Test the login, then save the account and sync it in the background.
+         */
+        post: operations["calendar_ext_connect_caldav"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Push Calendar
+         * @description Replace the helper's calendars and the window's helper events with this snapshot.
+         */
+        post: operations["ingest_push_calendar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/status": {
         parameters: {
             query?: never;
@@ -522,6 +602,56 @@ export interface components {
              */
             display_name: string | null;
         };
+        /** CalDAVAccountOut */
+        CalDAVAccountOut: {
+            /** Id */
+            id: number;
+            /** Label */
+            label: string;
+            /**
+             * Calendars
+             * @description Event calendars found when the login was tested
+             */
+            calendars: number;
+        };
+        /** CalDAVConnectIn */
+        CalDAVConnectIn: {
+            /**
+             * Preset
+             * @description icloud: the server is iCloud's; caldav: any server, at `url`
+             * @enum {string}
+             */
+            preset: "icloud" | "caldav";
+            /** Label */
+            label?: string | null;
+            /**
+             * Url
+             * @description caldav preset only
+             */
+            url?: string | null;
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
+        /** CalendarGroupOut */
+        CalendarGroupOut: {
+            /**
+             * Account Id
+             * @description None for the Mac helper's own calendars
+             */
+            account_id: number | null;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @description caldav, google or eventkit
+             */
+            kind: string;
+            freshness: components["schemas"]["SourceStatusOut"];
+            /** Calendars */
+            calendars: components["schemas"]["CalendarOut"][];
+        };
         /**
          * CalendarItem
          * @description One thing on the calendar. Every provider returns these.
@@ -577,6 +707,39 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             };
+        };
+        /** CalendarOut */
+        CalendarOut: {
+            /**
+             * Key
+             * @description Matches CalendarItem.meta.calendar_key
+             */
+            key: string;
+            /** Title */
+            title: string;
+            /** Color */
+            color: string;
+        };
+        /** CalendarPushIn */
+        CalendarPushIn: {
+            /**
+             * Source
+             * @default eventkit
+             * @constant
+             */
+            source?: "eventkit";
+            window: components["schemas"]["WindowIn"];
+            /** Calendars */
+            calendars: components["schemas"]["EventKitCalendarIn"][];
+            /** Events */
+            events: components["schemas"]["EventKitEventIn"][];
+        };
+        /** CalendarPushOut */
+        CalendarPushOut: {
+            /** Calendars */
+            calendars: number;
+            /** Events */
+            events: number;
         };
         /** CalendarResponse */
         CalendarResponse: {
@@ -640,6 +803,69 @@ export interface components {
             new_value: unknown;
             /** Reverts Change Id */
             reverts_change_id: number | null;
+        };
+        /** EventKitCalendarIn */
+        EventKitCalendarIn: {
+            /**
+             * Id
+             * @description EventKit calendarIdentifier
+             */
+            id: string;
+            /**
+             * Title
+             * @default
+             */
+            title?: string;
+            /** Color */
+            color?: string | null;
+            /**
+             * Account
+             * @description The account's name on the Mac
+             */
+            account?: string | null;
+            /**
+             * Account Type
+             * @description EventKit source type: caldav, mobileme, local, exchange, ...
+             */
+            account_type?: string | null;
+        };
+        /** EventKitEventIn */
+        EventKitEventIn: {
+            /** Uid */
+            uid: string;
+            /** Calendar Id */
+            calendar_id: string;
+            /**
+             * Title
+             * @default
+             */
+            title?: string;
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /** All Day */
+            all_day: boolean;
+            /** Location */
+            location?: string | null;
+            /** Url */
+            url?: string | null;
+            /**
+             * Occurrence Start
+             * Format: date-time
+             */
+            occurrence_start: string;
+            /**
+             * Status
+             * @default none
+             */
+            status?: string;
         };
         /** GoogleStart */
         GoogleStart: {
@@ -783,6 +1009,17 @@ export interface components {
             /** Modules */
             modules: components["schemas"]["ModuleInfo"][];
         };
+        /** SyncOutcomeOut */
+        SyncOutcomeOut: {
+            /** Account Id */
+            account_id: number;
+            /** Ok */
+            ok: boolean;
+            /** Events */
+            events: number;
+            /** Error */
+            error: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -795,6 +1032,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WindowIn */
+        WindowIn: {
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
         };
     };
     responses: never;
@@ -1546,6 +1796,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceStatusOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calendar_ext_list_calendars: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarGroupOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calendar_ext_sync_now: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncOutcomeOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calendar_ext_connect_caldav: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalDAVConnectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalDAVAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_push_calendar: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarPushIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarPushOut"];
                 };
             };
             /** @description Validation Error */
