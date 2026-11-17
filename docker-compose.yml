@@ -5,8 +5,14 @@
 #
 # Then open http://localhost:8600 and finish setup. The port is published on this machine's
 # loopback only. To reach it from your phone or other computers, put Tailscale, a Cloudflare
-# Tunnel or another reverse proxy in front (docs/SETUP.md). Do not publish it on 0.0.0.0 unless
-# it is behind HTTPS.
+# Tunnel or another reverse proxy in front (docs/SETUP.md, docs/CLOUDFLARE.md). Do not publish it
+# on 0.0.0.0 unless it is behind HTTPS.
+#
+# Optional services, each off unless its profile is switched on (`--profile <name>`, or
+# COMPOSE_PROFILES=a,b in .env):
+#   remote-mcp       organizer-mcp, the claude.ai connector (docs/REMOTE-CONNECTOR.md)
+#   remote-mcp-mail  organizer-mcp-mail, mail as a connector of its own
+#   cloudflare       cloudflared, a Cloudflare Tunnel run from this project (docs/CLOUDFLARE.md)
 
 services:
   organizer:
@@ -29,11 +35,12 @@ services:
     restart: unless-stopped
 
   # Optional: the MCP tools over streamable HTTP for claude.ai, behind Cloudflare Access
-  # (docs/MCP.md). Off unless started with `--profile mcp` (or COMPOSE_PROFILES=mcp in .env).
+  # (docs/REMOTE-CONNECTOR.md). Off unless started with `--profile remote-mcp` (or
+  # COMPOSE_PROFILES=remote-mcp in .env).
   # Its settings come from .env with empty defaults, so the stack starts without them; the
   # container itself refuses to start, naming what is missing, until they are set.
   organizer-mcp:
-    profiles: ["mcp"]
+    profiles: ["remote-mcp"]
     build:
       context: ./mcp
     depends_on:
@@ -53,12 +60,12 @@ services:
     restart: unless-stopped
 
   # Optional: mail as its own claude.ai connector, so mail has its own Access grant and is
-  # switched on per chat. Off unless started with `--profile mcp-mail`. The same image, serving
-  # only the opt-in `mail` toolset, read-only; those two settings are fixed here, not taken from
-  # .env (the server also refuses mail beside any write tool). It alone gets the mail token, and
-  # organizer-mcp never does.
+  # switched on per chat. Off unless started with `--profile remote-mcp-mail`. The same image,
+  # serving only the opt-in `mail` toolset, read-only; those two settings are fixed here, not
+  # taken from .env (the server also refuses mail beside any write tool). It alone gets the mail
+  # token, and organizer-mcp never does.
   organizer-mcp-mail:
-    profiles: ["mcp-mail"]
+    profiles: ["remote-mcp-mail"]
     build:
       context: ./mcp
     depends_on:
@@ -75,6 +82,22 @@ services:
       MCP_ALLOWED_EMAIL: ${MCP_ALLOWED_EMAIL:-}
       ORGANIZER_MCP_TOOLSETS: mail
       ORGANIZER_MCP_READ_ONLY: "1"
+    restart: unless-stopped
+
+  # Optional: a remotely managed Cloudflare Tunnel, run as part of this project
+  # (docs/CLOUDFLARE.md). Off unless started with `--profile cloudflare`. It needs no inbound
+  # port; it dials out to Cloudflare. Its routes are set in the Cloudflare dashboard and reach
+  # the services by name on this project's network: http://organizer:8600,
+  # http://organizer-mcp:8601, http://organizer-mcp-mail:8601. The token is read from the
+  # environment rather than the command line, so it never shows in `ps`.
+  cloudflared:
+    profiles: ["cloudflare"]
+    image: cloudflare/cloudflared:2026.10.7
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - organizer
     restart: unless-stopped
 
 volumes:

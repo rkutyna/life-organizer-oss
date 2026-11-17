@@ -4,6 +4,10 @@ The client only moves JSON. Every request carries `Authorization: Bearer <token>
 token by default, the `mail` token when a call passes `scope="mail"`. The token fixes the author
 of any write on the server, so the client sends no author of its own. It drops nothing from a
 response and turns failures into `OrganizerError`, whose message is what Claude sees.
+
+For an organizer behind Cloudflare Access, a service token (client id and secret) is sent as
+`CF-Access-Client-Id` and `CF-Access-Client-Secret` on every request, so Access lets the call
+through to the organizer, which then checks the bearer token as usual.
 """
 
 from __future__ import annotations
@@ -14,7 +18,13 @@ from typing import Any
 
 import httpx
 
-from organizer_mcp.config import TOKEN_ENVS, Scope, missing_token_message
+from organizer_mcp.config import (
+    CF_ACCESS_ID_ENV,
+    CF_ACCESS_SECRET_ENV,
+    TOKEN_ENVS,
+    Scope,
+    missing_token_message,
+)
 
 # FastAPI's own 404 text, and the text the organizer uses for unknown /api paths.
 _GENERIC_NOT_FOUND = frozenset({"Not Found", "not found"})
@@ -33,11 +43,23 @@ class OrganizerClient:
         *,
         token: str | None = None,
         mail_token: str | None = None,
+        cf_access_client_id: str | None = None,
+        cf_access_client_secret: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._tokens: dict[str, str | None] = {"api": token, "mail": mail_token}
-        self._http = httpx.Client(base_url=self.base_url, timeout=timeout, transport=transport)
+        # Sent only as a pair: half a service token is refused by Access anyway.
+        access: dict[str, str] = {}
+        if cf_access_client_id and cf_access_client_secret:
+            access = {
+                "CF-Access-Client-Id": cf_access_client_id,
+                "CF-Access-Client-Secret": cf_access_client_secret,
+            }
+        self.uses_access_service_token = bool(access)
+        self._http = httpx.Client(
+            base_url=self.base_url, timeout=timeout, transport=transport, headers=access
+        )
 
     def close(self) -> None:
         self._http.close()
@@ -97,6 +119,8 @@ class OrganizerClient:
                 "right?)"
             ) from exc
 
+        if response.is_redirect:
+            raise OrganizerError(self._redirect_error(response, method, path))
         if response.status_code >= 400:
             raise OrganizerError(_http_error(response, method, path, scope))
         if response.status_code == 204 or not response.content:
@@ -105,6 +129,33 @@ class OrganizerClient:
             return response.json()
         except ValueError as exc:
             raise OrganizerError(f"organizer returned non-JSON for {method} {path}") from exc
+
+    def _redirect_error(self, response: httpx.Response, method: str, path: str) -> str:
+        """A redirect is never an answer the tools can use, so it is an error, not an empty result.
+
+        Cloudflare Access sends a request without a valid service token to its sign-in page.
+        """
+        target = httpx.URL(response.headers.get("location", ""))
+        where = f"{method} {path}"
+        if target.host.endswith(".cloudflareaccess.com") or target.path.startswith(
+            "/cdn-cgi/access/"
+        ):
+            fix = (
+                f"check the service token in {CF_ACCESS_ID_ENV} and {CF_ACCESS_SECRET_ENV} "
+                "(revoked or expired?), and that the Access application has a Service Auth "
+                "policy that includes it"
+                if self.uses_access_service_token
+                else f"set {CF_ACCESS_ID_ENV} and {CF_ACCESS_SECRET_ENV} to a service token, "
+                "or point ORGANIZER_URL at an address without Access"
+            )
+            return (
+                f"Cloudflare Access stopped {where} at {self.base_url}: {fix} (docs/CLOUDFLARE.md)"
+            )
+        return (
+            f"organizer at {self.base_url} redirected {where} (HTTP {response.status_code}) to "
+            f"{target.copy_with(query=None)}; is ORGANIZER_URL the organizer's own address, or is "
+            "a proxy in front of it?"
+        )
 
 
 def _query(params: Mapping[str, Any] | None) -> dict[str, Any] | None:
