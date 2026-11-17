@@ -23,6 +23,14 @@ the Calendar app, local calendars included.
 
 ## Install
 
+**No paid Apple developer account is needed** to build and run the helper yourself:
+- Building from source needs only Xcode or its command-line tools. The install script signs the
+  result ad hoc.
+- A free Apple ID signed in to Xcode gives you an "Apple Development" certificate, which keeps
+  macOS's Calendar and Reminders permissions across rebuilds (below).
+- A paid account (the Apple Developer Program) is only needed to publish a ready-made, notarized
+  release for other people (`scripts/release.sh`).
+
 ### From a release
 
 When a signed release is published on the project's Releases page, download it. Until then (or
