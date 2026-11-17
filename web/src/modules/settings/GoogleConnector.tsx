@@ -15,7 +15,7 @@ type Feature = "calendar" | "gmail" | "tasks";
 const FEATURES: { value: Feature; label: string; hint: string; available: boolean }[] = [
   { value: "calendar", label: "Calendar", hint: "Read your Google calendars.", available: true },
   { value: "gmail", label: "Gmail", hint: "Read mail headers; open a message on demand.", available: true },
-  { value: "tasks", label: "Tasks", hint: "Reminders from Google Tasks. Coming in a later version.", available: false },
+  { value: "tasks", label: "Tasks", hint: "Read and update your Google Tasks lists as reminders.", available: true },
 ];
 
 /** Settings → Add account → Google: pick what to read, then go to Google's consent screen. */
