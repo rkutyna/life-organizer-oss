@@ -7,6 +7,7 @@ calls it at startup when `SCHEDULER_ENABLED` is true (it is off in tests):
     from sqlalchemy.orm import Session, sessionmaker
 
     from app.config import Settings
+from app.timeutil import local_tz
     from app.db import session_scope
     from app.timeutil import utcnow
 
@@ -26,10 +27,11 @@ Jobs run in a thread pool, so each run opens its own session.
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.config import Settings
+from app.timeutil import local_tz
 
 
 def make_scheduler(settings: Settings) -> BackgroundScheduler:
     return BackgroundScheduler(
-        timezone=settings.timezone,
+        timezone=local_tz(),  # Settings has no `timezone`; the zone setup chose
         job_defaults={"coalesce": True, "max_instances": 1, "misfire_grace_time": 300},
     )
