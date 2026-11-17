@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.modules.mail.models import MailMessage
 from app.modules.mail.sync import freshness_key
 from app.providers import service as accounts
+from app.providers.service import create as save_account  # see test_mail_readonly
 from app.timeutil import utcnow
 
 ME = {"name": "Demo User", "address": "demo@example.com"}
@@ -57,7 +58,7 @@ MESSAGES = [
 
 
 def seed(session: Session) -> None:
-    account = accounts.create(
+    account = save_account(
         session,
         get_settings(),
         kind="imap",
