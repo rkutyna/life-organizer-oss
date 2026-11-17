@@ -10,7 +10,12 @@ Registered with `app.audit.register_revert_hook` when the jobs models are import
   restore does not log a status flip per event.
 - Reverting an application's create soft-deletes its live status events and interviews too, as
   DELETE /applications/{id} would, so no child is left pointing at a deleted application.
+- Reverting an application's `status` change undoes the status-event changes of the same batch
+  (the event a status change added, or the edit or delete that moved the status), then derives
+  the status again. Reverting only the field would leave it disagreeing with the history.
 """
+
+from contextlib import suppress
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -52,6 +57,31 @@ def after_application_revert(
         _restore_cascaded_children(session, change, obj, author)
     elif change.op == "create" and obj.deleted_at is not None:
         _delete_live_children(session, obj, author)
+    elif change.op == "update" and change.field == "status":
+        _revert_status_events_of_batch(session, change, obj, author)
+
+
+def _revert_status_events_of_batch(
+    session: Session, change: audit.ChangeLog, application: Application, author: str
+) -> None:
+    table = ApplicationStatusEvent.__tablename__
+    session.info[RESTORING_CHILDREN] = True
+    try:
+        for sibling in reversed(audit.batch_changes(session, change.batch_id)):
+            if sibling.table_name != table or sibling.reverts_change_id is not None:
+                continue
+            event = session.get(
+                ApplicationStatusEvent,
+                int(sibling.record_id),
+                execution_options={"include_deleted": True},
+            )
+            if event is None or event.application_id != application.id:
+                continue
+            with suppress(audit.RevertConflict):
+                audit.revert(session, sibling.id, author)
+    finally:
+        session.info.pop(RESTORING_CHILDREN, None)
+    sync_application_status(session, application, author)
 
 
 def _restore_cascaded_children(

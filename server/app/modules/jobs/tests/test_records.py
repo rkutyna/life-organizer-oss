@@ -492,3 +492,15 @@ def test_found_on_due_by_and_moving_an_interview(client):
     assert r.json()["application_title"] == "Lead"
     r = client.patch(f"/api/jobs/interviews/{interview['id']}", json={"application_id": 999})
     assert r.status_code == 422
+
+
+def test_reverting_a_status_change_undoes_its_event(client, session):
+    created = application(client)
+    client.post(f"/api/jobs/applications/{created['id']}/status", json={"status": "interview"})
+    change = next(
+        c for c in audit.history(session, "jobs_applications", created["id"]) if c.field == "status"
+    )
+    r = client.post(f"/api/history/{change.id}/revert")
+    assert r.status_code == 200, r.text
+    assert client.get(f"/api/jobs/applications/{created['id']}").json()["status"] == "applied"
+    assert history(client, created["id"]) == ["applied"]
