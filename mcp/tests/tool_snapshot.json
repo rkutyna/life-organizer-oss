@@ -231,7 +231,7 @@
       "annotations": {
         "readOnlyHint": true
       },
-      "description": "Job applications, newest applied first, undated ones last. Filters combine.\n\n    status takes one or more status keys (job_statuses lists them). Leads are left out unless\n    include_leads is true or status names lead or dropped (see leads). company is a company's name\n    or id. tag matches the application's tags or its company's, ignoring case. since and until\n    bound date_applied, inclusive. q matches part of the title or the company name. Each\n    application is {id, company_id, company, title, status, reached, date_applied, found_on,\n    location, posting_url, source, next_action, next_action_due, tags, notes}. reached is the\n    furthest stage its status history got to, so a rejected application can still show it reached\n    interview.\n    ",
+      "description": "Job applications, newest applied first, undated ones last. Filters combine.\n\n    status takes one or more status keys (job_statuses lists them). Leads are left out unless\n    include_leads is true or status names lead or dropped (see leads). company is a company's name\n    or \"#id\". tag matches the application's tags or its company's, ignoring case. since and until\n    bound date_applied, inclusive. q matches part of the title or the company name. Each\n    application is {id, company_id, company, title, status, reached, date_applied, found_on,\n    location, posting_url, source, next_action, next_action_due, tags, notes}. reached is the\n    furthest stage its status history got to, so a rejected application can still show it reached\n    interview.\n    ",
       "inputSchema": {
         "properties": {
           "company": {
@@ -440,7 +440,7 @@
       "annotations": {
         "readOnlyHint": true
       },
-      "description": "Contacts, by name. Omit the filters for every contact.\n\n    company is a company's name or id; an unknown name is a not-found error. q matches part of the\n    name, role or company. due_by keeps the contacts whose next action is due on or before that\n    day. Each contact is {id, name, company_id, company, role, email, profile_url, contacted_on,\n    replied_on, next_action, next_action_due, tags, notes}.\n    ",
+      "description": "Contacts, by name. Omit the filters for every contact.\n\n    company is a company's name or \"#id\"; an unknown name is a not-found error. q matches part of\n    the name, role or company. due_by keeps the contacts whose next action is due on or before\n    that day. Each contact is {id, name, company_id, company, role, email, profile_url,\n    contacted_on, replied_on, next_action, next_action_due, tags, notes}.\n    ",
       "inputSchema": {
         "properties": {
           "company": {
@@ -729,7 +729,7 @@
         "destructiveHint": false,
         "readOnlyHint": false
       },
-      "description": "Record a job application.\n\n    The company is matched by name (ignoring case and spacing) and created if it does not exist;\n    company_created in the answer says which happened. status is an active or closed status key\n    (default applied; job_statuses lists them). The status history starts with applied, dated\n    date_applied (default today), then the status given if it is past applied.\n\n    One record per posting: when exactly one open lead at the company has the same title\n    (ignoring case, spacing and punctuation), that lead becomes the application, keeping its id,\n    and promoted_from_lead is true. The values given here replace the lead's; ones left out keep\n    the lead's, and notes are appended. When several open leads match, a new record is created and\n    lead_candidates lists them for the owner to resolve. For a lead you already know the id of,\n    mark_applied is the direct way. Returns the application.\n    ",
+      "description": "Record a job application.\n\n    The company is matched by name (ignoring case and spacing) and created if it does not exist;\n    company_created in the answer says which happened. status is an active or closed status key\n    (default applied; job_statuses lists them). date_applied defaults to today. The status history\n    gets applied, then the status given if it is past applied, both dated date_applied; when the\n    application submits a lead (below), they are dated the later of date_applied and the day the\n    lead was found instead, since the status follows the latest event.\n\n    One record per posting: when exactly one open lead at the company has the same title\n    (ignoring case, spacing and punctuation), that lead becomes the application, keeping its id,\n    and promoted_from_lead is true. The values given here replace the lead's; ones left out keep\n    the lead's, and notes are appended. When several open leads match, a new record is created and\n    lead_candidates lists them for the owner to resolve. For a lead you already know the id of,\n    mark_applied is the direct way. Returns the application.\n    ",
       "inputSchema": {
         "properties": {
           "company": {
@@ -1123,7 +1123,7 @@
         "destructiveHint": false,
         "readOnlyHint": false
       },
-      "description": "Change the fields you pass on a company. Returns the updated company.\n\n    company is an id or a name (ignoring case and spacing). Fields you leave out keep their value.\n    name renames it; a name another company already has is refused. target puts the company on\n    the owner's target list (or takes it off). tags replaces the tags. notes replaces the notes;\n    add_note appends a paragraph to them instead.\n    ",
+      "description": "Change the fields you pass on a company. Returns the updated company.\n\n    company is a name (ignoring case and spacing) or \"#id\". Fields you leave out keep their value.\n    name renames it; a name another company already has is refused. target puts the company on\n    the owner's target list (or takes it off). tags replaces the tags. notes replaces the notes;\n    add_note appends a paragraph to them instead.\n    ",
       "inputSchema": {
         "properties": {
           "add_note": {
@@ -1376,7 +1376,7 @@
         "destructiveHint": false,
         "readOnlyHint": false
       },
-      "description": "Change the fields you pass on a contact. Returns the updated contact.\n\n    Fields you leave out keep their value. To remove a value, name it in clear: contacted_on,\n    replied_on, next_action or next_action_due (mark a next action done by clearing both).\n    company moves the contact to the company with that name or id, which must exist. tags\n    replaces the tags.\n    ",
+      "description": "Change the fields you pass on a contact. Returns the updated contact.\n\n    Fields you leave out keep their value. To remove a value, name it in clear: contacted_on,\n    replied_on, next_action or next_action_due (mark a next action done by clearing both).\n    company moves the contact to the company with that name or \"#id\", which must exist. tags\n    replaces the tags.\n    ",
       "inputSchema": {
         "properties": {
           "clear": {
@@ -2095,7 +2095,7 @@
     },
     {
       "annotations": {
-        "destructiveHint": false,
+        "destructiveHint": true,
         "readOnlyHint": false
       },
       "description": "Set the owner's weekly target for one metric, or remove that goal with target=None.\n\n    metric is applications, outreach, leads, interviews or events (see weekly_goals for what each\n    counts). Only set a goal the owner asked for. Returns {metric, target}, target null when the\n    goal was removed.\n    ",

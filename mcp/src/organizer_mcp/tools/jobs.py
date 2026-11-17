@@ -3,13 +3,15 @@ and weekly goals. Reads and writes through /api/jobs with the `api` token.
 
 A lead is an application whose status is `lead`: a posting is one record from the day it is
 found to the day it closes. Statuses are a list the owner can edit (job_statuses); `lead`,
-`applied` and `dropped` always exist. Every write is logged under the token's author and can be
-reverted from History in the web app.
+`applied` and `dropped` always exist. A company is given by name, or by id as "#12" (see
+`_company_id`). Every write is logged under the token's author and can be reverted from History
+in the web app.
 """
 
 from __future__ import annotations
 
 import datetime as dt
+import re
 from typing import Any, Literal
 
 from mcp.types import ToolAnnotations
@@ -53,6 +55,9 @@ TOOLS = READS | WRITES
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
+# set_weekly_goal removes a goal when its target is None.
+WRITE_MAY_DELETE = ToolAnnotations(readOnlyHint=False, destructiveHint=True)
+DESTRUCTIVE = frozenset({"set_weekly_goal"})
 
 Metric = Literal["applications", "outreach", "leads", "interviews", "events"]
 ClearApplicationField = Literal["next_action", "next_action_due"]
@@ -152,14 +157,30 @@ def _fold(text: str) -> str:
     return " ".join(text.split()).casefold()
 
 
+_ID_PREFIXED = re.compile(r"(?:#|id:)\s*([0-9]+)", re.ASCII | re.IGNORECASE)
+_ASCII_DIGITS = re.compile(r"[0-9]+", re.ASCII)
+
+
 def _company_id(company: str | int) -> int:
-    """A company id, or the id of the company with this name (ignoring case and spacing)."""
-    if isinstance(company, int) or str(company).isdigit():
-        return int(company)
-    rows = client().get("/api/jobs/companies", params={"q": " ".join(str(company).split())})
+    """A company's id, from an id or a name.
+
+    An int, "#12" or "id:12" is an id. Anything else is a name, matched ignoring case and
+    spacing, so a company named "1984" is found by its name. Text of ASCII digits that names no
+    company is still read as an id, as it was before the "#" form existed. Digits outside ASCII
+    ("²", "١٢") are only ever part of a name.
+    """
+    if isinstance(company, int) and not isinstance(company, bool):
+        return company
+    text = " ".join(str(company).split())
+    prefixed = _ID_PREFIXED.fullmatch(text)
+    if prefixed:
+        return int(prefixed[1])
+    rows = client().get("/api/jobs/companies", params={"q": text})
     for row in rows:
-        if _fold(row["name"]) == _fold(str(company)):
+        if _fold(row["name"]) == _fold(text):
             return int(row["id"])
+    if _ASCII_DIGITS.fullmatch(text):
+        return int(text)
     raise OrganizerError(f"not found: no company named {company!r} (companies lists them)")
 
 
@@ -192,7 +213,7 @@ def applications(
 
     status takes one or more status keys (job_statuses lists them). Leads are left out unless
     include_leads is true or status names lead or dropped (see leads). company is a company's name
-    or id. tag matches the application's tags or its company's, ignoring case. since and until
+    or "#id". tag matches the application's tags or its company's, ignoring case. since and until
     bound date_applied, inclusive. q matches part of the title or the company name. Each
     application is {id, company_id, company, title, status, reached, date_applied, found_on,
     location, posting_url, source, next_action, next_action_due, tags, notes}. reached is the
@@ -255,10 +276,10 @@ def contacts(
 ) -> list[dict[str, Any]]:
     """Contacts, by name. Omit the filters for every contact.
 
-    company is a company's name or id; an unknown name is a not-found error. q matches part of the
-    name, role or company. due_by keeps the contacts whose next action is due on or before that
-    day. Each contact is {id, name, company_id, company, role, email, profile_url, contacted_on,
-    replied_on, next_action, next_action_due, tags, notes}.
+    company is a company's name or "#id"; an unknown name is a not-found error. q matches part of
+    the name, role or company. due_by keeps the contacts whose next action is due on or before
+    that day. Each contact is {id, name, company_id, company, role, email, profile_url,
+    contacted_on, replied_on, next_action, next_action_due, tags, notes}.
     """
     rows = client().get(
         "/api/jobs/contacts",
@@ -374,8 +395,10 @@ def add_application(
 
     The company is matched by name (ignoring case and spacing) and created if it does not exist;
     company_created in the answer says which happened. status is an active or closed status key
-    (default applied; job_statuses lists them). The status history starts with applied, dated
-    date_applied (default today), then the status given if it is past applied.
+    (default applied; job_statuses lists them). date_applied defaults to today. The status history
+    gets applied, then the status given if it is past applied, both dated date_applied; when the
+    application submits a lead (below), they are dated the later of date_applied and the day the
+    lead was found instead, since the status follows the latest event.
 
     One record per posting: when exactly one open lead at the company has the same title
     (ignoring case, spacing and punctuation), that lead becomes the application, keeping its id,
@@ -505,7 +528,7 @@ def update_company(
 ) -> dict[str, Any]:
     """Change the fields you pass on a company. Returns the updated company.
 
-    company is an id or a name (ignoring case and spacing). Fields you leave out keep their value.
+    company is a name (ignoring case and spacing) or "#id". Fields you leave out keep their value.
     name renames it; a name another company already has is refused. target puts the company on
     the owner's target list (or takes it off). tags replaces the tags. notes replaces the notes;
     add_note appends a paragraph to them instead.
@@ -584,7 +607,7 @@ def update_contact(
 
     Fields you leave out keep their value. To remove a value, name it in clear: contacted_on,
     replied_on, next_action or next_action_due (mark a next action done by clearing both).
-    company moves the contact to the company with that name or id, which must exist. tags
+    company moves the contact to the company with that name or "#id", which must exist. tags
     replaces the tags.
     """
     body = _patch_body(
@@ -748,7 +771,7 @@ def update_job_event(
     return _pick(client().patch(f"/api/jobs/events/{event_id}", body), EVENT_FIELDS)
 
 
-@app.tool(annotations=WRITE)
+@app.tool(annotations=WRITE_MAY_DELETE)
 def set_weekly_goal(metric: Metric, target: int | None) -> dict[str, Any]:
     """Set the owner's weekly target for one metric, or remove that goal with target=None.
 

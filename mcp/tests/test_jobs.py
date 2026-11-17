@@ -88,6 +88,40 @@ def test_unknown_company_name_is_a_clear_error(organizer: FakeOrganizer) -> None
         jobs.contacts(company="Globex")
 
 
+NUMERIC = [{**COMPANIES[0], "id": 9, "name": "1984"}]
+
+
+def test_a_numeric_company_name_is_found_by_name(organizer: FakeOrganizer) -> None:
+    organizer.reply("GET", "/api/jobs/companies", NUMERIC)
+    organizer.reply("GET", "/api/jobs/contacts", [])
+    jobs.contacts(company="1984")
+    assert query(organizer.only("GET", "/api/jobs/contacts")) == {"company_id": ["9"]}
+
+
+def test_a_prefixed_id_skips_the_name_lookup(organizer: FakeOrganizer) -> None:
+    organizer.reply("GET", "/api/jobs/contacts", [])
+    jobs.contacts(company="#1984")
+    jobs.contacts(company="id: 12")
+    first, second = organizer.sent("GET", "/api/jobs/contacts")
+    assert query(first) == {"company_id": ["1984"]} and query(second) == {"company_id": ["12"]}
+    assert organizer.sent("GET", "/api/jobs/companies") == []
+
+
+def test_bare_digits_naming_no_company_are_still_an_id(organizer: FakeOrganizer) -> None:
+    organizer.reply("GET", "/api/jobs/companies", COMPANIES)
+    organizer.reply("GET", "/api/jobs/contacts", [])
+    jobs.contacts(company="3")
+    assert query(organizer.only("GET", "/api/jobs/contacts")) == {"company_id": ["3"]}
+
+
+@pytest.mark.parametrize("name", ["\u00b2", "\u0661\u0662", "12\u00b2"])
+def test_non_ascii_digits_are_a_name_not_a_crash(organizer: FakeOrganizer, name: str) -> None:
+    assert name.isdigit()  # str.isdigit accepts these, int() does not
+    organizer.reply("GET", "/api/jobs/companies", COMPANIES)
+    with pytest.raises(OrganizerError, match="no company named"):
+        jobs.contacts(company=name)
+
+
 def test_add_application_sends_the_company_name_and_reports_promotion(
     organizer: FakeOrganizer,
 ) -> None:
@@ -229,7 +263,9 @@ def test_reads_are_read_only_and_writes_are_not() -> None:
         assert tools[name].annotations.readOnlyHint is True, name
     for name in jobs.WRITES:
         assert tools[name].annotations.readOnlyHint is False, name
-        assert tools[name].annotations.destructiveHint is False, name
+        assert tools[name].annotations.destructiveHint is (name in jobs.DESTRUCTIVE), name
+    # set_weekly_goal(target=None) deletes a goal, so it must not claim to be non-destructive.
+    assert tools["set_weekly_goal"].annotations.destructiveHint is True
 
 
 def test_docstrings_offer_no_drafts_and_no_rates() -> None:
