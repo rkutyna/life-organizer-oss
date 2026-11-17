@@ -1,6 +1,6 @@
 # Plan: a self-hosted organizer
 
-Status: phases 0 (core), 1 (calendar) and 2 (mail, MCP) built 2026-11-16; phases 3-5 not started. This repo is **private** until the checks in §9 pass.
+Status: phases 0-5 built 2026-11-16. Three security reviews were done and their findings fixed, and a first-time install was walked through from the docs alone. Not yet done: tests against real iCloud, Google and IMAP accounts, a signed release of the Mac helper, and making the repo public. This repo is **private** until the checks in §9 pass.
 
 ## 1. What this is
 
