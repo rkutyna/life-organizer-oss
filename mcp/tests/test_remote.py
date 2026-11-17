@@ -16,9 +16,10 @@ from support import API_TOKEN, FakeOrganizer
 
 from organizer_mcp import remote, server
 from organizer_mcp.config import ConfigError
+from organizer_mcp.tools import jobs
 
 # What `all` serves: every tool but the opt-in mail toolset's.
-DEFAULT_TOOLS = {"calendar", "calendar_sources"}
+DEFAULT_TOOLS = {"calendar", "calendar_sources"} | jobs.TOOLS
 PUBLIC_HOST = "organizer-mcp.example.com"
 ISSUER = "https://team.cloudflareaccess.com"
 AUD = "aud-tag-0123456789"
@@ -112,7 +113,7 @@ def test_settings_defaults_and_normalising() -> None:
     assert loaded.issuer == ISSUER
     assert loaded.public_host == PUBLIC_HOST
     assert loaded.read_only is False
-    assert loaded.toolsets == {"calendar"}
+    assert loaded.toolsets == {"calendar", "jobs"}
 
 
 def test_settings_for_the_mail_container() -> None:
@@ -127,7 +128,7 @@ def test_settings_for_the_mail_container() -> None:
     [
         ({"MCP_PORT": "eighty"}, "MCP_PORT"),
         ({"ORGANIZER_MCP_TOOLSETS": "email"}, "ORGANIZER_MCP_TOOLSETS"),
-        ({"ORGANIZER_MCP_TOOLSETS": "jobs"}, "not in this version yet"),
+        ({"ORGANIZER_MCP_TOOLSETS": "reminders"}, "not in this version yet"),
         ({"ORGANIZER_MCP_READ_ONLY": "yes"}, "ORGANIZER_MCP_READ_ONLY"),
         ({"MCP_ALLOWED_EMAIL": "owner"}, "email address"),
     ],
