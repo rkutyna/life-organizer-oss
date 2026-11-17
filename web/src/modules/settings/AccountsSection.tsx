@@ -1,7 +1,8 @@
-import { Pencil, Plug } from "lucide-react";
+import { ChevronRight, Pencil, Plug, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
+import { accountConnectors, type AccountConnector } from "@/app/modules";
 import { statusColor } from "@/app/tokens";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
@@ -37,18 +38,27 @@ const STATUS_TONE: Record<ProviderAccount["status"], string> = {
   disabled: statusColor("never"),
 };
 
-/** The calendar, mail and reminders accounts this install syncs. Adding them comes later. */
+/** The calendar, mail and reminders accounts this install syncs, and the ways to add one. */
 export function AccountsSection() {
   const accounts = useAccounts();
   const [renaming, setRenaming] = useState<ProviderAccount | null>(null);
   const [removing, setRemoving] = useState<ProviderAccount | null>(null);
   const remove = useDeleteAccount();
+  const [adding, setAdding] = useState(false);
+  const connectors = accountConnectors();
 
   return (
     <Section
       id="accounts"
       title="Connected accounts"
       description="The accounts the organizer reads your calendars, mail and reminders from."
+      actions={
+        connectors.length > 0 && (
+          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+            <Plus /> Add account
+          </Button>
+        )
+      }
     >
       {accounts.isPending ? (
         <Skeleton className="h-14 w-full" />
@@ -58,7 +68,11 @@ export function AccountsSection() {
         <EmptyState
           icon={Plug}
           title="No accounts connected"
-          description="Calendar, mail and reminders accounts arrive in later versions. Until then the calendar shows public holidays."
+          description={
+            connectors.length > 0
+              ? "Add a calendar, mail or reminders account to start syncing."
+              : "Calendar, mail and reminders accounts arrive in later versions. Until then the calendar shows public holidays."
+          }
           className="py-6"
         />
       ) : (
@@ -75,6 +89,7 @@ export function AccountsSection() {
       )}
 
       <RenameDialog account={renaming} onClose={() => setRenaming(null)} />
+      <AddAccountDialog open={adding} connectors={connectors} onClose={() => setAdding(false)} />
 
       <ConfirmDialog
         open={removing !== null}
@@ -225,5 +240,61 @@ function RenameForm({ account, onClose }: { account: ProviderAccount; onClose: (
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+function AddAccountDialog({
+  open,
+  connectors,
+  onClose,
+}: {
+  open: boolean;
+  connectors: AccountConnector[];
+  onClose: () => void;
+}) {
+  const [chosen, setChosen] = useState<AccountConnector | null>(null);
+
+  function close() {
+    setChosen(null);
+    onClose();
+  }
+
+  const Form = chosen?.form;
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && close()}>
+      <DialogContent className="sm:max-w-md">
+        {Form ? (
+          <Form onDone={close} onCancel={() => setChosen(null)} />
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-base">Add an account</DialogTitle>
+              <DialogDescription className="text-[13px]">
+                Calendars and mail are only read. Nothing in them is changed.
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="-mx-2 grid gap-0.5">
+              {connectors.map((connector) => (
+                <li key={connector.key}>
+                  <button
+                    type="button"
+                    onClick={() => setChosen(connector)}
+                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-medium">{connector.label}</span>
+                      {connector.description && (
+                        <span className="block text-xs text-muted-foreground">{connector.description}</span>
+                      )}
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

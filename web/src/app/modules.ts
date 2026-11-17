@@ -30,6 +30,29 @@ export interface CalendarDetailProps {
   onClose: () => void;
 }
 
+export interface AccountConnectorProps {
+  /** The account was connected (or the flow left the page, e.g. to an OAuth consent screen). */
+  onDone: () => void;
+  onCancel: () => void;
+}
+
+/**
+ * One way to add a connected account, offered by Settings → Connected accounts → Add account.
+ * A module registers its own (a CalDAV form, an IMAP form, a "Connect Google" button), so
+ * Settings never needs editing for a new provider. The form posts to the module's own API.
+ */
+export interface AccountConnector {
+  /** Stable key, e.g. "caldav", "imap", "google". */
+  key: string;
+  /** Menu label, e.g. "iCloud or CalDAV calendar". */
+  label: string;
+  /** One line under the label: what it reads and what it needs. */
+  description?: string;
+  /** Lower first in the menu. */
+  order?: number;
+  form: ComponentType<AccountConnectorProps>;
+}
+
 export interface AppModule {
   /** Folder name under src/modules/, e.g. "reminders". */
   key: string;
@@ -53,6 +76,8 @@ export interface AppModule {
    * calendar drawer renders it when such an item is clicked (owned items edit in place).
    */
   calendarDetails?: Record<string, ComponentType<CalendarDetailProps>>;
+  /** Ways this module adds connected accounts (see `AccountConnector`). */
+  accountConnectors?: AccountConnector[];
 }
 
 const found = import.meta.glob<AppModule>("../modules/*/module.tsx", {
@@ -69,4 +94,11 @@ export function calendarDetailFor(source: string): ComponentType<CalendarDetailP
     if (detail) return detail;
   }
   return undefined;
+}
+
+/** Every module's account connectors, in menu order. */
+export function accountConnectors(): AccountConnector[] {
+  return MODULES.flatMap((module) => module.accountConnectors ?? []).sort(
+    (a, b) => (a.order ?? 50) - (b.order ?? 50) || a.label.localeCompare(b.label),
+  );
 }
