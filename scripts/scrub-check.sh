@@ -27,9 +27,9 @@ generic_patterns=(
   '/(Users|home)/[A-Za-z0-9._-]+/'
   '[A-Za-z0-9-]+\.tail[0-9a-f]+\.ts\.net'
 )
-# Emails are allowed only at these domains.
+# Emails are allowed only at these domains (RFC 2606 example domains, and commit trailers).
 email_re='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
-email_ok='@(example\.(com|org|net)|anthropic\.com|users\.noreply\.github\.com)$'
+email_ok='@(([A-Za-z0-9-]+\.)*example(\.(com|org|net))?|anthropic\.com|users\.noreply\.github\.com)$'
 
 content() {
   case "$mode" in

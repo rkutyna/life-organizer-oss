@@ -189,10 +189,9 @@ def sync_account(
                 )
                 added += 1
         freshness.mark_success(session, key, at=now)  # commits
-        if account.kind == "imap":
-            # The mail module owns IMAP accounts, so Settings shows their status from here. A
-            # Google account is shared with other features; core records its auth failures.
-            accounts.mark_success(session, account.record)
+        # Settings shows each account's status from its last sync. A Google account is shared
+        # with the calendar, which marks it the same way; failures say which feature failed.
+        accounts.mark_success(session, account.record)
     except Exception as exc:
         session.rollback()
         message = str(exc) if isinstance(exc, MailError) else f"{type(exc).__name__}: {exc}"
@@ -205,8 +204,8 @@ def sync_account(
 
 def _failed(session: Session, account: MailAccount, key: str, message: str) -> None:
     freshness.mark_error(session, key, message)
-    if account.kind == "imap":
-        accounts.mark_error(session, account.record, message)
+    prefix = "" if account.kind == "imap" else "Gmail: "
+    accounts.mark_error(session, account.record, f"{prefix}{message}")
 
 
 def prune_removed_accounts(session: Session, active: list[MailAccount]) -> int:

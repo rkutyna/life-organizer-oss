@@ -1,6 +1,6 @@
 # Plan: a self-hosted organizer
 
-Status: phase 0 (core) built 2026-11-16; phases 1-5 not started. This repo is **private** until the checks in §9 pass.
+Status: phases 0 (core), 1 (calendar) and 2 (mail, MCP) built 2026-11-16; phases 3-5 not started. This repo is **private** until the checks in §9 pass.
 
 ## 1. What this is
 
@@ -67,7 +67,7 @@ The rules carry over as well:
 ### 4.1 Auth (new)
 
 - **Web:** one password, set on the setup page and stored as an argon2 hash. The session is an HTTP-only, SameSite cookie, and every write is protected against CSRF.
-- **API tokens** are made in Settings, one per client: the MCP server, the Mac helper, later the native apps. Each token has a scope: `ingest` is for the helper only, and `mcp` and `mcp-mail` are kept separate, so mail can only be read by a token made for it. Tokens are hashed at rest, can be revoked, and record when they were last used.
+- **API tokens** are made in Settings, one per client: the MCP server, the Mac helper, later the native apps. Each token has scopes: `api` (the REST API), `ingest` (the helper only) and `mail`, kept separate so mail can only be read by a token made for it. Tokens are hashed at rest, can be revoked, and record when they were last used.
 - **Recommended exposure**, in order:
   1. Tailscale (`tailscale serve`).
   2. A Cloudflare Tunnel with Access.
@@ -159,7 +159,7 @@ The original's job module is about 13k lines of server code and 8.8k of web code
 ## 6. MCP
 
 - **Toolsets:** `calendar`, `reminders`, `jobs` and `mail` (opt-in). The server instructions describe "your organizer" with no name.
-- **Auth:** an API token with the `mcp` scope, plus a separate `mcp-mail` token for the mail server.
+- **Auth:** an API token with the `api` scope, plus a separate token with the `mail` scope for the mail server (docs/MCP.md).
 - **Authors:** `claude`, and `claude_remote` for the remote connector, are kept so history shows which client wrote what.
 
 ## 7. Repo layout
