@@ -4,9 +4,15 @@ A company is the same company when its name matches ignoring case and spacing ("
 "acme  corp"). A posting's title matches when it is equal after that fold with punctuation also
 read as a space, so "Engineer, Platform" and "Engineer - Platform" match. Only these exact folds
 match: there is no fuzzy match, so two different postings are never joined by a guess.
+
+The fold first applies Unicode NFKC normalization and drops invisible format characters
+(zero-width spaces and joiners, byte-order marks), so lookalike spellings fold together: "Café"
+typed precomposed or with a combining accent, a fullwidth "Ａcme" and "Acme", "Acme" with a
+zero-width space appended.
 """
 
 import re
+import unicodedata
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,12 +22,20 @@ from app.modules.jobs.models import Application, Company, Contact
 _PUNCTUATION = re.compile(r"[^\w\s]")
 
 
+def _normalize(text: str | None) -> str:
+    """NFKC, without format (Cf) characters such as U+200B and U+FEFF."""
+    text = unicodedata.normalize("NFKC", text or "")
+    return "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
+
+
 def fold_name(text: str | None) -> str:
-    return " ".join((text or "").split()).casefold()
+    folded = " ".join(_normalize(text).split()).casefold()
+    # casefold can produce text that is no longer NFKC (e.g. some ligatures); normalize again.
+    return unicodedata.normalize("NFKC", folded)
 
 
 def fold_title(text: str | None) -> str:
-    return fold_name(_PUNCTUATION.sub(" ", text or ""))
+    return fold_name(_PUNCTUATION.sub(" ", _normalize(text)))
 
 
 def company_named(session: Session, name: str, *, exclude_id: int | None = None) -> Company | None:

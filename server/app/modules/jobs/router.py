@@ -398,9 +398,12 @@ def get_application(application_id: int, session: SessionDep) -> ApplicationOut:
 def update_application(
     application_id: int, payload: ApplicationUpdate, session: SessionDep, author: AuthorDep
 ) -> ApplicationOut:
-    """Change only the fields sent. The status changes through /status, /apply and /drop."""
+    """Change only the fields sent. The status changes through /status, /apply and /drop.
+
+    Renaming an open lead (or moving it to another company) is refused like logging it, when the
+    company already tracks a lead or application with that title; `force` allows it."""
     application = get_or_404(session, Application, application_id)
-    changes = _tags(payload.model_dump(exclude_unset=True))
+    changes = _tags(payload.model_dump(exclude_unset=True, exclude={"force"}))
     if "company_id" in changes:
         if changes["company_id"] is None:
             raise HTTPException(422, "an application needs a company")
@@ -415,6 +418,20 @@ def update_application(
     for key in ("location", "posting_url", "source", "next_action", "notes"):
         if key in changes and changes[key] is None:
             changes[key] = ""
+    renamed = any(
+        key in changes and changes[key] != getattr(application, key)
+        for key in ("title", "company_id")
+    )
+    if application.status == statuses.LEAD and renamed and not payload.force:
+        try:
+            service.check_posting_free(
+                session,
+                changes.get("company_id", application.company_id),
+                changes.get("title", application.title),
+                exclude_id=application.id,
+            )
+        except service.Conflict as exc:
+            raise _http(exc) from exc
     audit.update(session, application, changes, author)
     return _application_out(session, application)
 
@@ -495,7 +512,9 @@ def drop_lead(
 def update_status_event(
     event_id: int, payload: StatusEventUpdate, session: SessionDep, author: AuthorDep
 ) -> StatusEventOut:
-    """Fix a status event's date, status or note. Lead events keep their status."""
+    """Fix a status event's date, status or note. Lead events keep their status, and an edit
+    that would reorder the lead, applied or dropped events against the application (a lead event
+    after a submitted one, a lead with a date applied) is refused (409)."""
     event = get_or_404(session, ApplicationStatusEvent, event_id)
     application = get_or_404(session, Application, event.application_id)
     changes = payload.model_dump(exclude_unset=True, exclude_none=True)
@@ -507,6 +526,10 @@ def update_status_event(
             statuses.require(session, changes["status"], ("active", "closed"))
         except ValueError as exc:
             raise _http(exc) from exc
+    try:
+        service.check_history_edit(session, application, event, changes)
+    except service.Conflict as exc:
+        raise _http(exc) from exc
     with audit.transaction(session):
         audit.update(session, event, changes, author)
         sync_application_status(session, application, author)
@@ -515,17 +538,15 @@ def update_status_event(
 
 @router.delete("/status-events/{event_id}", status_code=204)
 def delete_status_event(event_id: int, session: SessionDep, author: AuthorDep) -> None:
-    """Soft delete. An application keeps at least one status event."""
+    """Soft delete. An application keeps at least one status event, and a delete that would
+    leave the history disagreeing with the application (removing the applied event of a former
+    lead, the dropped event of a dropped lead) is refused (409)."""
     event = get_or_404(session, ApplicationStatusEvent, event_id)
     application = get_or_404(session, Application, event.application_id)
-    others = session.scalars(
-        select(ApplicationStatusEvent.id).where(
-            ApplicationStatusEvent.application_id == application.id,
-            ApplicationStatusEvent.id != event.id,
-        )
-    ).all()
-    if not others:
-        raise HTTPException(409, "an application keeps at least one status event")
+    try:
+        service.check_history_edit(session, application, event, None)
+    except service.Conflict as exc:
+        raise _http(exc) from exc
     with audit.transaction(session):
         audit.delete(session, event, author)
         sync_application_status(session, application, author)

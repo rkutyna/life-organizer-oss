@@ -550,7 +550,7 @@ export interface paths {
         put?: never;
         /**
          * Import Commit
-         * @description Import: every write as author `system`, in one audit batch (`batch_id`).
+         * @description Import: every write under the caller's author, in one audit batch (`batch_id`).
          */
         post: operations["jobs_import_commit"];
         delete?: never;
@@ -743,6 +743,9 @@ export interface paths {
         /**
          * Update Application
          * @description Change only the fields sent. The status changes through /status, /apply and /drop.
+         *
+         *     Renaming an open lead (or moving it to another company) is refused like logging it, when the
+         *     company already tracks a lead or application with that title; `force` allows it.
          */
         patch: operations["jobs_update_application"];
         trace?: never;
@@ -827,14 +830,18 @@ export interface paths {
         post?: never;
         /**
          * Delete Status Event
-         * @description Soft delete. An application keeps at least one status event.
+         * @description Soft delete. An application keeps at least one status event, and a delete that would
+         *     leave the history disagreeing with the application (removing the applied event of a former
+         *     lead, the dropped event of a dropped lead) is refused (409).
          */
         delete: operations["jobs_delete_status_event"];
         options?: never;
         head?: never;
         /**
          * Update Status Event
-         * @description Fix a status event's date, status or note. Lead events keep their status.
+         * @description Fix a status event's date, status or note. Lead events keep their status, and an edit
+         *     that would reorder the lead, applied or dropped events against the application (a lead event
+         *     after a submitted one, a lead with a date applied) is refused (409).
          */
         patch: operations["jobs_update_status_event"];
         trace?: never;
@@ -1810,6 +1817,12 @@ export interface components {
             notes?: string | null;
             /** Tags */
             tags?: string[] | null;
+            /**
+             * Force
+             * @description Rename an open lead even when the company already tracks that title
+             * @default false
+             */
+            force?: boolean;
         };
         /** AuthState */
         AuthState: {
@@ -2885,7 +2898,7 @@ export interface components {
             row: number;
             /**
              * Code
-             * @description missing_company, missing_title, missing_name, unknown_status, bad_date, duplicate_row
+             * @description missing_company, missing_title, missing_name, unknown_status, bad_date, future_date, too_long, too_many_tags, duplicate_row
              */
             code: string;
             /** Field */

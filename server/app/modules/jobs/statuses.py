@@ -12,7 +12,10 @@ Every status has a `kind`:
 The defaults below apply until the list is edited. The first edit writes them out as
 `JobStatus` rows (author `system`, in the edit's own batch), and from then on the rows are the
 list. The three reserved statuses can be renamed and moved but not removed, and their kind is
-fixed. A status still used by an application's history cannot be removed.
+fixed. A status still used by a live application's history cannot be removed. Deleted records
+do not hold a status: one can be removed while only deleted records use it, and restoring such
+a record from History is then refused until the status is added back (revert_hooks.py).
+Reverting a status's creation from History follows the same rules as removing it.
 """
 
 import re
@@ -23,7 +26,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import audit
-from app.modules.jobs.models import ApplicationStatusEvent, JobStatus
+from app.modules.jobs.models import Application, ApplicationStatusEvent, JobStatus
 
 Kind = Literal["lead", "dropped", "active", "closed"]
 KINDS: tuple[Kind, ...] = ("lead", "dropped", "active", "closed")
@@ -94,6 +97,17 @@ def keys_of_kind(session: Session, *kinds: Kind) -> list[str]:
     return [s.key for s in load(session) if s.kind in kinds]
 
 
+def in_use(session: Session, key: str) -> int:
+    """How many live status events (or live applications) use `key`."""
+    events = session.scalar(
+        select(func.count(ApplicationStatusEvent.id)).where(ApplicationStatusEvent.status == key)
+    )
+    applications = session.scalar(
+        select(func.count(Application.id)).where(Application.status == key)
+    )
+    return max(events or 0, applications or 0)
+
+
 def require(session: Session, key: str, kinds: tuple[Kind, ...] | None = None) -> StatusDef:
     """The status `key`, or a ValueError naming the valid choices."""
     known = by_key(session)
@@ -131,6 +145,8 @@ def add(session: Session, label: str, kind: Kind, key: str | None, author: str) 
     if kind not in ("active", "closed"):
         raise StatusError("only active and closed statuses can be added")
     label = label.strip()
+    if not label:
+        raise StatusError("a status needs a label")
     key = (key or slug(label)).strip()
     if not KEY_PATTERN.match(key):
         raise StatusError("key must be lowercase letters, digits and _, starting with a letter")
@@ -164,6 +180,8 @@ def update(session: Session, key: str, changes: dict, author: str) -> StatusDef:
                 raise StatusError("a status can only be made active or closed")
         if "label" in changes:
             changes["label"] = changes["label"].strip()
+            if not changes["label"]:
+                raise StatusError("a status needs a label")
         audit.update(session, row, changes, author)
     return StatusDef(row.key, row.label, row.kind, row.position)  # type: ignore[arg-type]
 
@@ -184,9 +202,7 @@ def remove(session: Session, key: str, author: str) -> None:
     """Remove a status nothing uses. The reserved ones stay."""
     if key in RESERVED:
         raise StatusError(f"{key!r} is a reserved status and cannot be removed", 409)
-    used = session.scalar(
-        select(func.count(ApplicationStatusEvent.id)).where(ApplicationStatusEvent.status == key)
-    )
+    used = in_use(session, key)
     if used:
         raise StatusError(
             f"{used} status change(s) use {key!r}; change them before removing it", 409
