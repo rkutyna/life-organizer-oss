@@ -1,7 +1,8 @@
 # Setting up Life Organizer for Mac
 
 You need a machine that stays on (a small home server, a VPS, or a Mac) with Docker and
-Docker Compose.
+Docker Compose. To have Claude Code do the setup with you, open it in the repo folder and ask it
+to set the organizer up; it follows [INSTALL-WITH-CLAUDE.md](INSTALL-WITH-CLAUDE.md).
 
 ## 1. Start it
 
@@ -29,14 +30,29 @@ and tokens of the accounts you connect.
 
 The app listens on the host's loopback (`127.0.0.1:8600`) only. Choose one of these:
 
-1. **Tailscale (recommended).** Install Tailscale on the server and your devices, then run
-   `tailscale serve --bg --https=443 http://127.0.0.1:8600` on the server. The app is then at
+1. **Tailscale (recommended, simplest).** Install Tailscale on the server and your devices,
+   then run `tailscale serve --bg 8600` on the server (`tailscale serve status` shows the
+   address; `tailscale serve reset` turns it off). The app is then at
    `https://<machine>.<your-tailnet>.ts.net` from your devices only, with HTTPS. It is never on
-   the public internet.
-2. **Cloudflare Tunnel with Access.**
-   - Point a tunnel's public hostname at `http://127.0.0.1:8600` (or at the container on a shared Docker network).
-   - Add a Cloudflare Access application with a policy that allows only your email.
-   - The organizer's own password still applies behind Access.
+   the public internet, and the Mac helper and Claude Code reach it the same way. In `.env`, set
+   `PUBLIC_BASE_URL=https://<machine>.<your-tailnet>.ts.net` and `COOKIE_SECURE=always`, then
+   `docker compose up -d`.
+2. **Cloudflare Tunnel with Access.** A hostname of your own, such as
+   `organizer.example.com`, reachable from any browser after Cloudflare Access lets only your
+   email in. [CLOUDFLARE.md](CLOUDFLARE.md) is the step-by-step:
+   - a remotely managed tunnel, run by the `cloudflared` service in this compose project
+     (profile `cloudflare`, token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN`) or on the host;
+   - a route from your hostname to `http://organizer:8600` (or `http://127.0.0.1:8600` from the
+     host);
+   - an Access application for that hostname with a policy that allows only your email;
+   - `PUBLIC_BASE_URL=https://organizer.example.com` and `COOKIE_SECURE=always` in `.env`, and
+     the Google redirect URI `https://organizer.example.com/api/oauth/google/callback`.
+
+   The organizer's own password still applies behind Access. Clients that use an API token
+   instead of a browser (the Mac helper, Claude Code on another machine) can't pass Access; use
+   them on the server itself or over Tailscale. The claude.ai connector also uses Cloudflare,
+   on its own hostname ([REMOTE-CONNECTOR.md](REMOTE-CONNECTOR.md)); Tailscale for your devices
+   plus Cloudflare for the connector is a good mix.
 3. **Your LAN only.** Change the port mapping in `docker-compose.yml` to `"8600:8600"`. Without
    HTTPS the browser won't install it as an app, and the session cookie travels unencrypted on
    your network.
@@ -50,8 +66,10 @@ the password. Run setup on the machine itself (http://localhost:8600), then add 
 ## 3. Connect Claude (optional)
 
 In **Settings → API tokens**, make a token with author "Claude" and scope `api`, then follow
-docs/MCP.md. Mail needs a separate token with the `mail` scope, so a general Claude token can't
-read your mail. Connecting mail accounts is covered in docs/MAIL.md.
+docs/MCP.md for Claude Code. For Claude on the web, desktop and mobile (a claude.ai custom
+connector), follow docs/REMOTE-CONNECTOR.md. Mail needs a separate token with the `mail` scope,
+so a general Claude token can't read your mail. Connecting mail accounts is covered in
+docs/MAIL.md.
 
 ## Updating
 
