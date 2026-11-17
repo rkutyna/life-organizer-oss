@@ -19,6 +19,13 @@ public struct RootView: View {
             // A new server address or token rebuilds every screen and store.
             .id(app.generation)
             .onOpenURL(perform: open)
+            // In-app links (a calendar item's "Open in Jobs") are handled here, not by
+            // LaunchServices, so they always reach this window.
+            .environment(\.openURL, OpenURLAction { url in
+                guard DeepLink(url) != nil else { return .systemAction }
+                open(url)
+                return .handled
+            })
             .task {
                 // `-launch.url lifeorganizer://…` on the command line opens a link at launch.
                 if let raw = UserDefaults.standard.string(forKey: "launch.url"), let url = URL(string: raw) {

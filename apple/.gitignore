@@ -3,3 +3,4 @@ OrganizerKit/.build/
 OrganizerKit/.swiftpm/
 xcuserdata/
 *.xcuserstate
+Config/Local.xcconfig

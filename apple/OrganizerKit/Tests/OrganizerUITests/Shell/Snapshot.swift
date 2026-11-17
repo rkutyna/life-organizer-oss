@@ -29,7 +29,7 @@ enum Snapshot {
         let host = server.host() ?? ""
         try #require(ServerConfig.isLoopback(host), "snapshots only read from a local server, not \(host)")
         _ = NSApplication.shared
-        NSApp.setActivationPolicy(.prohibited)
+        NSApp.setActivationPolicy(.accessory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = server
         return AppEnvironment(
@@ -59,6 +59,8 @@ enum Snapshot {
         window.contentView = hosting
         window.setFrameOrigin(NSPoint(x: -10_000, y: -10_000))
         window.orderFrontRegardless()
+        // A key window draws list selections in their accent color (not as a black block).
+        window.makeKey()
         let until = Date().addingTimeInterval(2)
         while Date() < until {
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
