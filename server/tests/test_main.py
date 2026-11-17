@@ -28,6 +28,7 @@ def test_every_api_route_but_the_public_ones_needs_auth(app, anon: TestClient):
         "/api/auth/login",
         "/api/settings/timezones",
         "/api/settings/holiday-countries",
+        "/api/oauth/google/callback",
     }
     checked = 0
     for path, operations in app.openapi()["paths"].items():

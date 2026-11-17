@@ -37,5 +37,6 @@ def import_all_models() -> None:
     importlib.import_module("app.freshness")  # source_status
     importlib.import_module("app.auth.models")  # core_config, core_sessions, core_api_tokens
     importlib.import_module("app.providers.models")  # core_provider_accounts
+    importlib.import_module("app.providers.google")  # core_oauth_states
     for name in module_names():
         import_module_part(name, "models")

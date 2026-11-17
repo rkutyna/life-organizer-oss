@@ -9,8 +9,8 @@ from datetime import datetime
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from app.deps import SessionDep, get_or_404
-from app.providers import service
+from app.deps import SessionDep, SettingsDep, get_or_404
+from app.providers import google, service
 from app.providers.models import ProviderAccount
 
 router = APIRouter(prefix="/api/settings/accounts", tags=["settings"])
@@ -64,8 +64,12 @@ def update_account(
 
 
 @router.delete("/{account_id}", status_code=204)
-def delete_account(account_id: int, session: SessionDep) -> None:
+def delete_account(account_id: int, session: SessionDep, settings: SettingsDep) -> None:
     """Remove the account and its stored credentials. Data mirrored from it goes with it
-    (each feature module deletes its mirrored rows on the next sync)."""
-    session.delete(get_or_404(session, ProviderAccount, account_id))
+    (each feature module deletes its mirrored rows on the next sync). A Google account's grant
+    is also revoked at Google, best effort."""
+    account = get_or_404(session, ProviderAccount, account_id)
+    if account.kind == google.KIND:
+        google.revoke(settings, account)
+    session.delete(account)
     session.commit()

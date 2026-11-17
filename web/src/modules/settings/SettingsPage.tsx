@@ -1,3 +1,7 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router";
+import { toast } from "sonner";
+
 import { PageHeader } from "@/components/PageHeader";
 
 import { AccountsSection } from "./AccountsSection";
@@ -7,6 +11,7 @@ import { TokensSection } from "./TokensSection";
 
 /** Everything you can set for this install, on one page. */
 export default function SettingsPage() {
+  useGoogleReturn();
   return (
     <>
       <PageHeader title="Settings" />
@@ -20,4 +25,18 @@ export default function SettingsPage() {
       </div>
     </>
   );
+}
+
+/** Google's consent flow ends back here with ?google=connected|error&detail=...; say so once. */
+function useGoogleReturn() {
+  const [params, setParams] = useSearchParams();
+  const result = params.get("google");
+  const detail = params.get("detail") ?? "";
+  useEffect(() => {
+    if (!result) return;
+    if (result === "connected") toast.success(`Connected ${detail || "your Google account"}`);
+    else toast.error(detail === "cancelled" ? "Google sign-in was cancelled" : `Google: ${detail}`);
+    setParams({}, { replace: true });
+    document.getElementById("accounts-title")?.scrollIntoView();
+  }, [result, detail, setParams]);
 }

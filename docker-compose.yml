@@ -22,6 +22,9 @@ services:
       DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-UTC}
       COOKIE_SECURE: ${COOKIE_SECURE:-auto}
       FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     volumes:
       - organizer-data:/app/server/data
     restart: unless-stopped

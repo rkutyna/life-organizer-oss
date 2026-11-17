@@ -37,6 +37,15 @@ class Settings(BaseSettings):
     # How long a browser stays signed in without being used.
     session_idle_days: int = Field(default=30, ge=1, le=365)
 
+    # The address people use to reach the app, e.g. https://organizer.example.ts.net. Used to
+    # build OAuth redirect URIs; empty means "the address the request came in on".
+    public_base_url: str = ""
+
+    # Your own Google Cloud OAuth client ("Web application"), for Google Calendar, Gmail and
+    # Tasks (app.providers.google; docs/GOOGLE.md). Empty: Google accounts can't be connected.
+    google_client_id: str = ""
+    google_client_secret: SecretStr = SecretStr("")
+
     # Built web app served at `/`. Skipped when the folder does not exist.
     web_dist: Path = Path("../web/dist")
 
