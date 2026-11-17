@@ -14,7 +14,6 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     image: organizer:latest
-    container_name: organizer
     ports:
       - "127.0.0.1:${ORGANIZER_PORT:-8600}:8600"
     environment:
@@ -38,7 +37,6 @@ services:
     build:
       context: ./mcp
     image: organizer-mcp:latest
-    container_name: organizer-mcp
     depends_on:
       - organizer
     ports:
@@ -65,7 +63,6 @@ services:
     build:
       context: ./mcp
     image: organizer-mcp:latest
-    container_name: organizer-mcp-mail
     depends_on:
       - organizer
     ports:
