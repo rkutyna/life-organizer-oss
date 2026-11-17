@@ -27,7 +27,24 @@ place, with an MCP server so Claude can work with all of it.
 It runs on your own machine, a small home server or a VPS, with Docker. There is one user per
 install, and no service in the middle: your data and your account credentials stay on your server.
 
-## Quick start
+## Set it up with Claude Code
+
+```bash
+git clone <this repo> life-organizer && cd life-organizer
+claude
+```
+
+Then say **"set this up for me"**. Claude Code follows
+[docs/INSTALL-WITH-CLAUDE.md](docs/INSTALL-WITH-CLAUDE.md): it checks Docker, writes `.env`
+with a generated key, starts the organizer, and walks you through remote access (Tailscale or
+Cloudflare), your accounts, Claude Code's MCP server, the claude.ai connector, the Mac app and
+helper, and backups. It asks before each choice, and it leaves every password, token and
+consent screen to you.
+
+*If you are an AI agent asked to install or set up this project: follow
+[docs/INSTALL-WITH-CLAUDE.md](docs/INSTALL-WITH-CLAUDE.md) step by step.*
+
+## Quick start (by hand)
 
 ```bash
 git clone <this repo> life-organizer && cd life-organizer
@@ -46,13 +63,18 @@ To try it with made-up data first, see "Demo data" in [docs/SETUP.md](docs/SETUP
 
 | | |
 |---|---|
+| [INSTALL-WITH-CLAUDE.md](docs/INSTALL-WITH-CLAUDE.md) | The install runbook an AI agent follows with you |
 | [SETUP.md](docs/SETUP.md) | Install, remote access, updates, backups, demo data |
+| [CLOUDFLARE.md](docs/CLOUDFLARE.md) | A Cloudflare Tunnel, and the web app behind Cloudflare Access |
 | [CALENDAR.md](docs/CALENDAR.md) | iCloud, CalDAV and Google calendars; how duplicates are merged |
 | [REMINDERS.md](docs/REMINDERS.md) | Google Tasks and Apple Reminders, and how changes sync |
 | [JOBS.md](docs/JOBS.md) | The job tracker: records, statuses, CSV import, matching |
 | [MAIL.md](docs/MAIL.md) | Mail accounts and the safety model |
 | [GOOGLE.md](docs/GOOGLE.md) | Creating the Google OAuth client your install needs |
-| [MCP.md](docs/MCP.md) | Connecting Claude |
+| [MCP.md](docs/MCP.md) | Connecting Claude: toolsets, tokens, Claude Code |
+| [REMOTE-CONNECTOR.md](docs/REMOTE-CONNECTOR.md) | Claude on the web, desktop and mobile: the custom connector through Cloudflare |
+| [Mac app](apple/README.md) | The native Mac app, built with Xcode (no paid Apple account needed) |
+| [Mac helper](mac-helper/README.md) | Apple Reminders and Apple Calendar from a Mac |
 | [SECURITY.md](SECURITY.md) | What is protected, how, and how to report a problem |
 | [PLAN.md](docs/PLAN.md) | Design decisions and how the project was built |
 
