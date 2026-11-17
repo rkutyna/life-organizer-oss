@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app import freshness
 from app.calendar import CalendarItem, register_provider
 from app.modules.calendar_ext import catalog, dedup
-from app.modules.calendar_ext.calendar_accounts import calendar_accounts
+from app.modules.calendar_ext.calendar_accounts import calendar_accounts, label_freshness
 from app.modules.calendar_ext.ingest import SOURCE as EVENTKIT
 from app.modules.calendar_ext.models import ExternalEvent
 from app.timeutil import to_local, utcnow
@@ -29,6 +29,7 @@ COLOR = catalog.DEFAULT_COLOR
 
 def external_items(session: Session, start: datetime, end: datetime) -> list[CalendarItem]:
     enabled = calendar_accounts(session)
+    label_freshness(enabled)
     now = utcnow()
     rows = _overlapping(session, [cal.id for cal in enabled], start, end)
     by_account: dict[int, list[ExternalEvent]] = {cal.id: [] for cal in enabled}

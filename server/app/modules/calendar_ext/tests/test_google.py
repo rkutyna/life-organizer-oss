@@ -15,6 +15,7 @@ from app.modules.calendar_ext.calendar_accounts import calendar_accounts
 from app.modules.calendar_ext.models import ExternalCalendar, ExternalEvent
 from app.modules.calendar_ext.tests.support import GOOGLE_USER, google_account
 from app.providers import google
+from app.providers import service as accounts
 from app.timeutil import set_timezone
 
 NY = ZoneInfo("America/New_York")
@@ -136,6 +137,7 @@ def test_reads_every_listed_calendar_with_googles_colors(
     assert calendars[SHARED].title == "Team (shared)"
     assert all(c.account == GOOGLE_USER and c.account_id == account.id for c in calendars.values())
     assert freshness.source_status(session, f"calendar:{account.id}").last_success_at == NOW
+    assert accounts.status(account) == "ok"
 
 
 def test_events_are_single_occurrences_over_the_window(
@@ -184,6 +186,8 @@ def test_an_api_error_keeps_the_previous_rows_and_is_recorded(
     status = freshness.source_status(session, f"calendar:{account.id}")
     assert status.state == "error"
     assert "403" in (status.last_error or "")
+    assert accounts.status(account) == "error"
+    assert (account.last_error or "").startswith("Calendar: ")
 
 
 def test_a_refused_grant_asks_for_a_reconnect(session: Session, settings: Settings, monkeypatch):

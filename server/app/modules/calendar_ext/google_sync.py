@@ -26,6 +26,7 @@ from app.modules.calendar_ext.calendar_accounts import account_name, freshness_k
 from app.modules.calendar_ext.models import ExternalCalendar, ExternalEvent
 from app.modules.calendar_ext.normalize import aware_utc, midnight, normalize_color
 from app.providers import google
+from app.providers import service as accounts
 from app.providers.models import ProviderAccount
 from app.timeutil import utcnow
 
@@ -91,12 +92,15 @@ def sync_account(
                         events.append(row)
         replace_account_rows(session, account.id, calendars, events)
         freshness.mark_success(session, key, at=now)  # commits
+        accounts.mark_success(session, account)
     except Exception as exc:
         session.rollback()
         message = str(exc) or type(exc).__name__
         if isinstance(exc, google.GoogleAuthError):
             message = f"Google refused the sign-in; reconnect the account in Settings ({message})"
         freshness.mark_error(session, key, message)
+        if not isinstance(exc, google.GoogleAuthError):  # access_token already marked it
+            accounts.mark_error(session, account, f"Calendar: {message}")
         raise
     return SyncResult(calendars=len(calendars), events=len(events))
 

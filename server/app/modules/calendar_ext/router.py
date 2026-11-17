@@ -26,6 +26,7 @@ from app.modules.calendar_ext.calendar_accounts import (
     ICLOUD_NAME,
     ICLOUD_URL,
     calendar_accounts,
+    label_freshness,
     register_freshness,
 )
 from app.modules.calendar_ext.sync import sync_all
@@ -57,7 +58,9 @@ class CalendarGroupOut(BaseModel):
 @router.get("/calendars", response_model=list[CalendarGroupOut])
 def list_calendars(session: SessionDep) -> list[CalendarGroupOut]:
     """Every calendar the calendar shows, grouped by account, each account with its age."""
-    shown = catalog.build(session, calendar_accounts(session))
+    enabled = calendar_accounts(session)
+    label_freshness(enabled)
+    shown = catalog.build(session, enabled)
     return [
         CalendarGroupOut(
             account_id=group.account_id,
@@ -117,7 +120,8 @@ def _server_url(payload: CalDAVConnectIn) -> str:
     return url
 
 
-def _login_error(payload: CalDAVConnectIn, exc: Exception) -> str:
+def _login_error(payload: CalDAVConnectIn, url: str, exc: Exception) -> str:
+    host = urlsplit(url).hostname or url
     if isinstance(exc, caldav_sync.LoginFailed):
         if payload.preset == "icloud":
             return (
@@ -125,8 +129,10 @@ def _login_error(payload: CalDAVConnectIn, exc: Exception) -> str:
                 "password (not your Apple ID password)."
             )
         return "The server refused the username or password."
-    detail = (str(exc) or type(exc).__name__).replace(payload.password, "***")
-    return f"Could not read calendars from the server: {detail}"
+    if isinstance(exc, OSError):  # refused, timed out, DNS, TLS (HTTP client errors too)
+        return f"Could not reach {host}. Check the address and that the server is running."
+    detail = (str(exc) or type(exc).__name__).replace(payload.password, "***")[:300]
+    return f"{host} did not answer as a CalDAV server: {detail}"
 
 
 @router.post(
@@ -155,7 +161,7 @@ def connect_caldav(
     try:
         found = source.calendars()
     except Exception as exc:
-        raise HTTPException(400, _login_error(payload, exc)) from None
+        raise HTTPException(400, _login_error(payload, url, exc)) from None
 
     default_label = ICLOUD_NAME if payload.preset == "icloud" else urlsplit(url).hostname or url
     try:

@@ -39,7 +39,7 @@ def connections(monkeypatch) -> list[tuple]:
         if password == "wrong":
             return FakeCalDAV(fail_with=LoginFailed("refused"))
         if "down" in url:
-            return FakeCalDAV(fail_with=ConnectionError(f"cannot reach {url} as {password}"))
+            return FakeCalDAV(fail_with=ConnectionRefusedError("refused"))
         return FakeCalDAV(
             remote_calendars=[RemoteCalendar(WORK_URL, "Work", "#3366CC")],
             texts={WORK_URL: [vcalendar(EVENT)]},
@@ -95,12 +95,25 @@ def test_a_refused_login_saves_nothing_and_says_why(
     assert accounts.accounts(session, "caldav") == []
 
 
-def test_an_unreachable_server_is_reported_without_the_password(client: TestClient, connections):
+def test_an_unreachable_server_is_reported_plainly(client: TestClient, connections):
     response = client.post(URL, json={**GENERIC, "url": "https://down.example.com/"})
 
     assert response.status_code == 400
+    assert response.json()["detail"].startswith("Could not reach down.example.com.")
+
+
+def test_a_server_that_is_not_caldav_is_reported_without_the_password(
+    client: TestClient, monkeypatch
+):
+    def odd_server(url, username, password):
+        return FakeCalDAV(fail_with=ValueError(f"unexpected answer for {password}"))
+
+    monkeypatch.setattr(caldav_sync, "connect", odd_server)
+    response = client.post(URL, json=GENERIC)
+
+    assert response.status_code == 400
     detail = response.json()["detail"]
-    assert detail.startswith("Could not read calendars from the server")
+    assert detail.startswith("dav.example.com did not answer as a CalDAV server")
     assert "synthetic-password" not in detail
 
 

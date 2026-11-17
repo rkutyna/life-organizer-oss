@@ -205,3 +205,16 @@ def test_no_data_gives_no_items_and_no_groups(client: TestClient):
 def test_the_source_is_listed_as_mirrored(client: TestClient):
     sources = {s["key"]: s for s in client.get("/api/calendar/sources").json()}
     assert sources["calendar_ext"]["live"] is False
+
+
+def test_reading_the_calendar_names_each_accounts_freshness_source(
+    client: TestClient, session: Session, settings: Settings
+):
+    account = caldav_account(session, settings, label="Personal")
+    freshness.forget_source(session, f"calendar:{account.id}")  # as after a restart
+    session.commit()
+
+    items(client)
+
+    labels = {s["source"]: s["label"] for s in client.get("/api/status/sources").json()}
+    assert labels[f"calendar:{account.id}"] == "Personal calendars"

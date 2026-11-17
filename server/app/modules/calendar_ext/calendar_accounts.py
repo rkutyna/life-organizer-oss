@@ -86,6 +86,13 @@ def calendar_accounts(session: Session) -> list[CalendarAccount]:
     return found
 
 
+def label_freshness(current: list[CalendarAccount]) -> None:
+    """Give each account's freshness source its name. The registry lives in memory, so the
+    calendar reads call this too: a restarted server knows the names before its first poll."""
+    for cal in current:
+        freshness.register_source(cal.freshness_key, f"{cal.label} calendars", STALE_AFTER)
+
+
 def register_freshness(session: Session) -> list[CalendarAccount]:
     """Register every enabled account as a freshness source and forget the rest.
 
@@ -93,8 +100,7 @@ def register_freshness(session: Session) -> list[CalendarAccount]:
     """
     current = calendar_accounts(session)
     keep = {cal.freshness_key for cal in current}
-    for cal in current:
-        freshness.register_source(cal.freshness_key, f"{cal.label} calendars", STALE_AFTER)
+    label_freshness(current)
     known = set(freshness.registered_sources()) | set(
         session.scalars(
             select(SourceStatus.source).where(SourceStatus.source.startswith(FRESHNESS_PREFIX))
