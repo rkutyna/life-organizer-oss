@@ -124,24 +124,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get App Settings */
-        get: operations["settings_get_app_settings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update App Settings */
-        patch: operations["settings_update_app_settings"];
-        trace?: never;
-    };
     "/api/settings/timezones": {
         parameters: {
             query?: never;
@@ -177,6 +159,24 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Settings */
+        get: operations["settings_get_app_settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update App Settings */
+        patch: operations["settings_update_app_settings"];
         trace?: never;
     };
     "/api/settings/tokens": {
@@ -250,13 +250,71 @@ export interface paths {
         /**
          * Delete Account
          * @description Remove the account and its stored credentials. Data mirrored from it goes with it
-         *     (each feature module deletes its mirrored rows on the next sync).
+         *     (each feature module deletes its mirrored rows on the next sync). A Google account's grant
+         *     is also revoked at Google, best effort.
          */
         delete: operations["settings_delete_account"];
         options?: never;
         head?: never;
         /** Update Account */
         patch: operations["settings_update_account"];
+        trace?: never;
+    };
+    "/api/settings/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Google Status */
+        get: operations["settings_google_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/google/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start
+         * @description Begin connecting a Google account. Send the browser to the returned URL.
+         */
+        post: operations["settings_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Callback
+         * @description Google's redirect. Always answers with a redirect back to Settings.
+         */
+        get: operations["settings_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/calendar": {
@@ -583,6 +641,29 @@ export interface components {
             /** Reverts Change Id */
             reverts_change_id: number | null;
         };
+        /** GoogleStart */
+        GoogleStart: {
+            /** Features */
+            features: ("calendar" | "gmail" | "tasks")[];
+        };
+        /** GoogleStartOut */
+        GoogleStartOut: {
+            /** Authorize Url */
+            authorize_url: string;
+        };
+        /** GoogleStatus */
+        GoogleStatus: {
+            /**
+             * Configured
+             * @description GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
+             */
+            configured: boolean;
+            /**
+             * Redirect Uri
+             * @description Add this to the OAuth client's authorized redirect URIs
+             */
+            redirect_uri: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -894,6 +975,46 @@ export interface operations {
             };
         };
     };
+    settings_list_timezones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    settings_list_holiday_countries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HolidayCountry"][];
+                };
+            };
+        };
+    };
     settings_get_app_settings: {
         parameters: {
             query?: never;
@@ -949,70 +1070,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppSettingsOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    settings_list_timezones: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Bearer <API token>, for non-browser clients */
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    settings_list_holiday_countries: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Bearer <API token>, for non-browser clients */
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HolidayCountry"][];
                 };
             };
             /** @description Validation Error */
@@ -1216,6 +1273,105 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProviderAccountOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_google_status: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_start: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Bearer <API token>, for non-browser clients */
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleStartOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_callback: {
+        parameters: {
+            query?: {
+                state?: string;
+                code?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

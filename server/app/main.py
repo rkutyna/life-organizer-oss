@@ -11,7 +11,8 @@ optional files; a module never needs an edit to this file:
     jobs.py               `register_jobs(scheduler, session_factory, settings)`
 
 Every /api route is authenticated (app.auth.principal) except /api/health, the setup and
-sign-in routes in app.auth.router, and setup's two pick lists in app.auth.settings_router.
+sign-in routes in app.auth.router, setup's two pick lists in app.auth.settings_router, and
+Google's OAuth redirect in app.providers.google_router.
 
 Run: `uv run uvicorn app.main:app --reload --port 8600` (from `server/`).
 Schema changes go through Alembic (`uv run alembic upgrade head`); this file never creates
@@ -38,6 +39,7 @@ from app.auth.principal import require_api, require_browser, require_ingest, req
 from app.config import Settings, get_settings
 from app.db import make_engine, make_session_factory
 from app.discovery import MODULE_PARTS, import_all_models, import_module_part, module_names
+from app.providers import google_router
 from app.providers import router as accounts_router
 from app.scheduler import make_scheduler
 
@@ -125,6 +127,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(settings_router.public_router)
     api.include_router(settings_router.router, dependencies=browser_only)
     api.include_router(accounts_router.router, dependencies=browser_only)
+    api.include_router(google_router.router, dependencies=browser_only)
+    api.include_router(google_router.callback_router)  # public; the OAuth state authorizes it
 
     # Core routers and the built-in holidays source.
     signed_in = [Depends(require_api)]

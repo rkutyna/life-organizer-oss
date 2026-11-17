@@ -3,6 +3,8 @@ import { lazy } from "react";
 
 import type { AppModule } from "@/app/modules";
 
+import { GoogleConnector } from "./GoogleConnector";
+
 export default {
   key: "settings",
   label: "Settings",
@@ -12,4 +14,13 @@ export default {
   shortcut: "s",
   altShortcuts: [","],
   page: lazy(() => import("./SettingsPage")),
+  accountConnectors: [
+    {
+      key: "google",
+      label: "Google account",
+      description: "Google Calendar and Gmail, read only, through Google's own sign-in.",
+      order: 10,
+      form: GoogleConnector,
+    },
+  ],
 } satisfies AppModule;
