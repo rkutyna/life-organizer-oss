@@ -370,10 +370,25 @@ It is built from source with Xcode; **no paid Apple developer account is needed*
 `apple/README.md` in this repo. If that file isn't in the checkout yet, tell the human the Mac
 app isn't available in this version and skip the step.
 
+| Part | Who |
+|---|---|
+| Xcode 26 or later installed, `xcode-select -p` pointing at it | **[HUMAN]** (App Store) |
+| `apple/scripts/test.sh && apple/scripts/build.sh` (signs to run locally, no team) | agent |
+| Token, author **You**, scopes **API** and **Mail** | **[HUMAN]**, in the web app's Settings → API tokens |
+| Open the app; on first launch enter the server address and paste the token | **[HUMAN]** |
+
+The server address is the one the human opens in a browser (`http://localhost:8600` on the
+organizer's own Mac, else the Tailscale or Cloudflare HTTPS address). The first-launch sheet
+checks it before saving: a 401 means a mistyped or revoked token, a 403 a missing scope.
+
 If the human chose Cloudflare for the web app, the app needs a service token of its own
 (CLOUDFLARE.md step 5). **[HUMAN]** enters its Client ID and Client Secret in the app's
-Settings → Advanced (the environment variables `ORGANIZER_CF_ACCESS_CLIENT_ID` and
-`ORGANIZER_CF_ACCESS_CLIENT_SECRET` override them). The details are in `apple/README.md`.
+Settings, section **Advanced: Cloudflare Access service token** (the environment variables
+`ORGANIZER_CF_ACCESS_CLIENT_ID` and `ORGANIZER_CF_ACCESS_CLIENT_SECRET` override them). The
+details are in `apple/README.md`.
+
+**Verify:** Settings → Test Connection says "Connected" with the api and mail scopes, and the
+Calendar shows this week.
 
 ## Step 12. The Mac helper (optional)
 
@@ -396,7 +411,11 @@ Follow [mac-helper/README.md](../mac-helper/README.md). Split of work:
 Tailscale address. Behind Cloudflare Access, it is the HTTPS hostname, and the helper needs a
 service token of its own (CLOUDFLARE.md step 5): the agent sets `server.cf_access_client_id` in
 the config, and **[HUMAN]** puts the secret in `server.cf_access_client_secret` or in the Keychain,
-as `mac-helper/README.md` describes. `doctor` then shows whether Access let it through.
+as `mac-helper/README.md` describes (`organizer-helper set-cf-access-secret` stores it there).
+`doctor` then shows whether Access let it through.
+
+The Mac app (step 11) can run the helper inside itself instead (Settings → Helper, off by
+default; `apple/README.md`). Use one or the other, never both: the second one refuses to start.
 
 **Verify:** `organizer-helper doctor` ends without failures, `organizer-helper status` shows a
 recent push, and the organizer's Reminders page shows the Apple lists within a few minutes.

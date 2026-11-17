@@ -18,6 +18,8 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "organizer-helper", targets: ["organizer-helper"]),
+        // The helper as a library, so the Mac app (apple/) can run it in-process.
+        .library(name: "HelperCore", targets: ["HelperCore"]),
     ],
     targets: [
         .target(

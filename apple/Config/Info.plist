@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged with the keys Xcode generates (GENERATE_INFOPLIST_FILE). Only what build settings cannot say. -->
+	<!-- lifeorganizer://<module>/<path>?<query> links (OrganizerUI/Shell/DeepLink.swift). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lifeorganizer</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Plain http only to this Mac and the local network (a LAN-only install); https elsewhere. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- The in-app helper (off by default). No prompt appears until Request Access in Settings → Helper. -->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Life Organizer reads your calendars so your organizer can show every event in one place. It never changes them.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Life Organizer reads your calendars so your organizer can show every event in one place.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Life Organizer syncs your reminders with your organizer: it reads your lists and applies the changes you make there (add, edit, check off). It never deletes a reminder.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Life Organizer syncs your reminders with your organizer.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Life Organizer talks to your organizer server on your network.</string>
+</dict>
+</plist>

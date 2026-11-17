@@ -19,7 +19,8 @@ public final class HelperRuntime: @unchecked Sendable {
         self.stateFiles = stateFiles
         host = config.hostName
         tokens = TokenProvider(config: config, keychain: environment.keychain)
-        server = ServerClient(baseURL: config.serverURL, tokens: tokens, transport: environment.transport, retryDelays: retryDelays)
+        server = ServerClient(baseURL: config.serverURL, tokens: tokens, transport: environment.transport, retryDelays: retryDelays,
+                              access: AccessProvider(config: config, keychain: environment.keychain))
     }
 
     /// Created on first use, so a disabled stream never touches EventKit.

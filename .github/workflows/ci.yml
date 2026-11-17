@@ -67,6 +67,23 @@ jobs:
       - run: swift --version
       - run: swift build && swift test
 
+  mac-app:
+    # The package needs Swift 6.2 (Xcode 26 or later); the app targets macOS 15.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - run: xcodebuild -version
+      - name: Package tests
+        run: apple/scripts/test.sh
+      - name: Build the app with signing off (no team)
+        run: |
+          xcodebuild -project apple/LifeOrganizer.xcodeproj -scheme LifeOrganizer \
+            -destination 'platform=macOS' -derivedDataPath apple/.build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO -quiet build
+
   docker:
     runs-on: ubuntu-latest
     steps:

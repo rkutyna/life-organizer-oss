@@ -14,10 +14,19 @@ public struct HelperConfig: Codable, Sendable {
         /// Allow a plain `http://` url to a host other than this Mac. The token then travels
         /// unencrypted; only for a network you trust. Default false: such a url is refused.
         public var allow_insecure_http: Bool
+        /// A Cloudflare Access service token's client id, for an organizer behind Cloudflare
+        /// Access (a "Service Auth" policy). null or absent: no Access headers are sent.
+        @NullCodable public var cf_access_client_id: String?
+        /// Its client secret. null or absent while `cf_access_client_id` is set: read it from the
+        /// Keychain (the config's Keychain service, account `cf-access-client-secret`).
+        @NullCodable public var cf_access_client_secret: String?
 
-        public init(url: String = "", token: String? = nil, timeout_seconds: Double = 30, allow_insecure_http: Bool = false) {
+        public init(url: String = "", token: String? = nil, timeout_seconds: Double = 30, allow_insecure_http: Bool = false,
+                    cf_access_client_id: String? = nil, cf_access_client_secret: String? = nil) {
             self.url = url; self.token = token; self.timeout_seconds = timeout_seconds
             self.allow_insecure_http = allow_insecure_http
+            self.cf_access_client_id = cf_access_client_id
+            self.cf_access_client_secret = cf_access_client_secret
         }
 
         public init(from decoder: Decoder) throws {
@@ -27,6 +36,8 @@ public struct HelperConfig: Codable, Sendable {
             token = try c.decodeIfPresent(String.self, forKey: .token)
             timeout_seconds = try c.decodeIfPresent(Double.self, forKey: .timeout_seconds) ?? d.timeout_seconds
             allow_insecure_http = try c.decodeIfPresent(Bool.self, forKey: .allow_insecure_http) ?? d.allow_insecure_http
+            cf_access_client_id = try c.decodeIfPresent(String.self, forKey: .cf_access_client_id)
+            cf_access_client_secret = try c.decodeIfPresent(String.self, forKey: .cf_access_client_secret)
         }
     }
 
@@ -190,7 +201,9 @@ public struct HelperConfig: Codable, Sendable {
 
     public var launchAgentLabel: String { launch_agent_label ?? bundle_id }
     /// Whether the config file itself holds the token.
-    public var holdsToken: Bool { !(server.token ?? "").isEmpty }
+    public var holdsToken: Bool { !(server.token ?? "").isEmpty || !(server.cf_access_client_secret ?? "").isEmpty }
+    /// The Keychain account of the Cloudflare Access client secret.
+    public static let accessSecretAccount = "cf-access-client-secret"
     public var keychainService: String { keychain.service.flatMap { $0.isEmpty ? nil : $0 } ?? bundle_id }
     public var keychainAccount: String { keychain.account.isEmpty ? "ingest-token" : keychain.account }
 

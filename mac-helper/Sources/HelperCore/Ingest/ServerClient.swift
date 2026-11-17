@@ -50,19 +50,22 @@ public final class URLSessionTransport: HTTPTransport, @unchecked Sendable {
 }
 
 /// HTTP client for the organizer's ingest API. Every request carries
-/// `Authorization: Bearer <ingest token>`; the token is never logged.
+/// `Authorization: Bearer <ingest token>`, and with a Cloudflare Access service token also
+/// `CF-Access-Client-Id` and `CF-Access-Client-Secret`; neither secret is ever logged.
 public final class ServerClient: RemindersServer, @unchecked Sendable {
     public let baseURL: URL?
     private let tokens: TokenProvider
+    private let access: AccessProvider?
     private let transport: HTTPTransport
     private let delays: [TimeInterval]
 
     public static let standardRetryDelays: [TimeInterval] = [2, 8, 30]
 
     public init(baseURL: URL?, tokens: TokenProvider, transport: HTTPTransport,
-                retryDelays: [TimeInterval] = ServerClient.standardRetryDelays) {
+                retryDelays: [TimeInterval] = ServerClient.standardRetryDelays, access: AccessProvider? = nil) {
         self.baseURL = baseURL
         self.tokens = tokens
+        self.access = access
         self.transport = transport
         delays = retryDelays
     }
@@ -107,6 +110,10 @@ public final class ServerClient: RemindersServer, @unchecked Sendable {
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let credentials = access?.credentials() {
+            req.setValue(credentials.clientID, forHTTPHeaderField: "CF-Access-Client-Id")
+            req.setValue(credentials.clientSecret, forHTTPHeaderField: "CF-Access-Client-Secret")
+        }
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -123,7 +130,7 @@ public final class ServerClient: RemindersServer, @unchecked Sendable {
                     log.debug("\(label): HTTP \(code) (\(body?.count ?? 0) bytes sent)")
                     return (code, data)
                 }
-                if code == 401 || code == 403 { tokens.invalidate() }
+                if code == 401 || code == 403 { tokens.invalidate(); access?.invalidate() }
                 let err = PushError.http(code, String(decoding: data, as: UTF8.self))
                 if !retry || !err.retryable || attempt >= delays.count {
                     if !throwOnHTTPError { return (code, data) }

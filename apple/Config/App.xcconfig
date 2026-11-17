@@ -1,0 +1,26 @@
+// The app's identity, in one place. It is neutral and distinct, so this build can sit beside
+// any other organizer app on the same Mac. Change it here (or in Local.xcconfig, below) if you
+// need another bundle id.
+LO_BUNDLE_ID = com.lifeorganizerformac.app
+LO_DISPLAY_NAME = Life Organizer
+
+PRODUCT_BUNDLE_IDENTIFIER = $(LO_BUNDLE_ID)
+PRODUCT_NAME = Life Organizer
+INFOPLIST_KEY_CFBundleDisplayName = $(LO_DISPLAY_NAME)
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+MACOSX_DEPLOYMENT_TARGET = 15.0
+
+// Signing: "Sign to Run Locally" (ad hoc), no team, so anyone can build it. Not sandboxed (the
+// in-app helper uses EventKit like the command-line helper), and no hardened runtime (only
+// notarized distribution needs it).
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+ENABLE_HARDENED_RUNTIME = NO
+ENABLE_APP_SANDBOX = NO
+
+// Optional, never committed: your own team id or bundle id, e.g.
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   CODE_SIGN_IDENTITY = Apple Development
+#include? "Local.xcconfig"

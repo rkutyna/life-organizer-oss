@@ -129,3 +129,95 @@ public final class TokenProvider: @unchecked Sendable {
 
     public func invalidate() { lock.withLock { cached = nil } }
 }
+
+// MARK: Cloudflare Access service token
+
+/// A Cloudflare Access service token, sent as `CF-Access-Client-Id` and `CF-Access-Client-Secret`
+/// on every request. The secret is never logged or printed.
+public struct AccessCredentials: Sendable, Equatable {
+    public let clientID: String
+    public let clientSecret: String
+
+    public init(clientID: String, clientSecret: String) {
+        self.clientID = clientID
+        self.clientSecret = clientSecret
+    }
+}
+
+/// Where the Access service token came from. `doctor` prints this, never the secret.
+public enum AccessSource: Equatable, Sendable, CustomStringConvertible {
+    /// `server.cf_access_client_id` is not set: no Access headers.
+    case notConfigured
+    case config
+    case keychain(service: String, account: String)
+    case missingSecret(service: String, account: String)
+    case keychainError(String)
+
+    public var description: String {
+        switch self {
+        case .notConfigured: return "not set (no Cloudflare Access headers are sent)"
+        case .config: return "client id and secret in the config file"
+        case .keychain(let s, let a): return "client id in the config, secret in the Keychain (service \(s), account \(a))"
+        case .missingSecret(let s, let a):
+            return "client id set, but no secret: server.cf_access_client_secret is null and the Keychain has no item (service \(s), account \(a)); run organizer-helper set-cf-access-secret"
+        case .keychainError(let why): return "secret not readable: \(why)"
+        }
+    }
+}
+
+public struct ResolvedAccess: Sendable {
+    public var credentials: AccessCredentials?
+    public var source: AccessSource
+}
+
+/// The Access service token: the client id from the config, the secret from the config, else the
+/// Keychain. The Keychain is read only when a client id is set.
+public enum AccessResolver {
+    public static func resolve(config: HelperConfig, keychain: KeychainStore) -> ResolvedAccess {
+        guard let id = config.server.cf_access_client_id?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else {
+            return ResolvedAccess(credentials: nil, source: .notConfigured)
+        }
+        if let secret = config.server.cf_access_client_secret?.trimmingCharacters(in: .whitespacesAndNewlines), !secret.isEmpty {
+            return ResolvedAccess(credentials: AccessCredentials(clientID: id, clientSecret: secret), source: .config)
+        }
+        let service = config.keychainService, account = HelperConfig.accessSecretAccount
+        do {
+            if let secret = try keychain.read(service: service, account: account)?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !secret.isEmpty {
+                return ResolvedAccess(credentials: AccessCredentials(clientID: id, clientSecret: secret),
+                                      source: .keychain(service: service, account: account))
+            }
+            return ResolvedAccess(credentials: nil, source: .missingSecret(service: service, account: account))
+        } catch {
+            return ResolvedAccess(credentials: nil, source: .keychainError("\(error)"))
+        }
+    }
+}
+
+/// The Access credentials for requests: resolved on first use and cached; dropped when the
+/// server or Cloudflare refuses (401/403), so a secret stored while the daemon runs is picked up.
+public final class AccessProvider: @unchecked Sendable {
+    private let resolveNow: @Sendable () -> ResolvedAccess
+    private let lock = NSLock()
+    private var cached: ResolvedAccess?
+
+    public init(resolve: @escaping @Sendable () -> ResolvedAccess) { resolveNow = resolve }
+
+    public convenience init(config: HelperConfig, keychain: KeychainStore) {
+        self.init { AccessResolver.resolve(config: config, keychain: keychain) }
+    }
+
+    /// Fixed credentials (tests, doctor), or none.
+    public convenience init(fixed: AccessCredentials?) {
+        self.init { ResolvedAccess(credentials: fixed, source: fixed == nil ? .notConfigured : .config) }
+    }
+
+    public func credentials() -> AccessCredentials? {
+        if let c = lock.withLock({ cached }) { return c.credentials }
+        let c = resolveNow()
+        lock.withLock { cached = c }
+        return c.credentials
+    }
+
+    public func invalidate() { lock.withLock { cached = nil } }
+}

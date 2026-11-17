@@ -7,6 +7,7 @@ public enum Command: Equatable {
     case install(binary: String?, printOnly: Bool)
     case uninstall
     case setToken
+    case setAccessSecret
     case version
     case help
 }
@@ -73,6 +74,9 @@ public enum CLI {
       organizer-helper run              the daemon (what the LaunchAgent runs); asks for
                                         Calendars and Reminders access on its first run
       organizer-helper set-token        store the ingest token in the Keychain (reads stdin)
+      organizer-helper set-cf-access-secret
+                                        store a Cloudflare Access service token's client
+                                        secret in the Keychain (reads stdin)
       organizer-helper doctor           read-only checks; never prompts for permissions
       organizer-helper status           what the daemon last did (from its status file)
       organizer-helper install [--binary PATH] [--print]
@@ -120,6 +124,7 @@ public enum CLI {
             command = .install(binary: bin.map(Paths.expand), printOnly: flag("--print"))
         case "uninstall": command = .uninstall
         case "set-token": command = .setToken
+        case "set-cf-access-secret": command = .setAccessSecret
         case "version", "--version": command = .version
         case "help": command = .help
         default: throw CLIError.usage("unknown command '\(sub)'")
@@ -184,6 +189,8 @@ public enum CLI {
             return StatusCommand.run(config: config, context: context)
         case .setToken:
             return setToken(config: config, context: context)
+        case .setAccessSecret:
+            return setAccessSecret(config: config, context: context)
         case .install(let binary, let printOnly):
             let bin = binary ?? currentExecutable()
             let label = config.launchAgentLabel
@@ -261,11 +268,40 @@ public enum CLI {
         return 0
     }
 
+    /// `set-cf-access-secret`: reads a Cloudflare Access client secret from stdin and stores it in
+    /// the Keychain (the config's service, account `cf-access-client-secret`). Never printed.
+    static func setAccessSecret(config: HelperConfig, context: CLIContext) -> Int32 {
+        guard let raw = context.readSecret() else {
+            context.err("error: no secret on stdin")
+            return 2
+        }
+        let secret = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !secret.isEmpty, !secret.contains(where: { $0.isWhitespace || $0.isNewline }) else {
+            context.err("error: the secret is empty or contains whitespace; paste only the secret")
+            return 2
+        }
+        let env = context.makeEnvironment(config)
+        do {
+            try env.keychain.write(secret, service: config.keychainService, account: HelperConfig.accessSecretAccount)
+        } catch {
+            context.err("error: \(error)")
+            return 1
+        }
+        context.out("stored the Cloudflare Access secret in the Keychain (service \(config.keychainService), account \(HelperConfig.accessSecretAccount))")
+        if (config.server.cf_access_client_id ?? "").isEmpty {
+            context.out("note: set server.cf_access_client_id in the config too; without it no Access headers are sent")
+        }
+        if let s = config.server.cf_access_client_secret, !s.isEmpty {
+            context.out("note: the config's server.cf_access_client_secret is set and takes precedence; set it to null to use the Keychain")
+        }
+        return 0
+    }
+
     /// The token from stdin: without echo when stdin is a terminal, else everything piped in.
     static func readSecretFromStdin() -> String? {
         if isatty(STDIN_FILENO) == 1 {
             var buffer = [CChar](repeating: 0, count: 4096)
-            guard let p = readpassphrase("Paste the ingest token (input hidden), then press Return: ", &buffer, buffer.count, 0) else {
+            guard let p = readpassphrase("Paste it (input hidden), then press Return: ", &buffer, buffer.count, 0) else {
                 return nil
             }
             let s = String(cString: p)
